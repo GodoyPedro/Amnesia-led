@@ -1,32 +1,8 @@
-from bs4 import BeautifulSoup
-import math
-import csv
-import requests
-import re
-import json
-import unicodedata
-import time
-from datetime import datetime, date
-import openpyxl
-import os
-from os import listdir
-from os.path import isfile, join
-import shutil
-import tkinter as tk
-from tkinter import *
-from tkinter.ttk import *
-from tkinter import font as tkFont
-from os import listdir
-from os.path import isfile, join
-from functools import cmp_to_key
-
-
-# Funcion para limpiar texto "".join([x for x in "texto" if x==" " or x.isalpha()])
-# Ordenar las listas.csv en carpetas
-# Crear alguna forma de seguir llenando una en base a nuevos pedidos que lleguen
-# En base al orden de las listas en carpetas, generar el excel
+from modulos import *
+from imagenes_ascii import *
 
 class sistema_datos:
+
     def __init__(self):
         self.diccionario_pedidos = {}
         self.diccionario_pedidos_json = {}
@@ -56,7 +32,7 @@ class sistema_datos:
         else:
             return 0
 
-    def obtener_datos_productos(self, nombre_json):
+    def obtener_json_desde_archivo(self, nombre_json):
         try:
             with open(nombre_json, "r", encoding="utf-8") as archivo:
                 return json.load(archivo)
@@ -72,8 +48,6 @@ class sistema_datos:
     
     def dejar_solo_numeros(self, texto):
         return "".join([x for x in texto if x in "0123456789"])
-
-    
 
     def decidir_texto_a_escribir(self, codigo_salida, dato):
         texto_a_escribir = ""
@@ -113,9 +87,9 @@ class sistema_datos:
             "productos":[]
         }
 
-    # Si el envio tiene mas de 5 elementos entonces no lo voy a cargar
-    # En el metodo escribir_csv_lista_pedidos el nombre lo tendria que sacar desde facturacion, no desde envio
-    # En todas las asignaciones de facturacion y envio tengo que limpiar la string
+        # Si el envio tiene mas de 5 elementos entonces no lo voy a cargar
+        # En el metodo escribir_csv_lista_pedidos el nombre lo tendria que sacar desde facturacion, no desde envio
+        # En todas las asignaciones de facturacion y envio tengo que limpiar la string
         facturacion = datos_usuario[0]
         email = datos_usuario[1][-1]
         telefono = datos_usuario[2][-1]
@@ -160,8 +134,8 @@ class sistema_datos:
 
         return [codigo_salida,datos_usuario_dict]
 
-    # En vez de 2 listas, un diccionario con 2 claves "exitosos", "fallidos", dependiendo del codigo_salida que esta en [0]
-    # guardo el diccionario de [1] en el diccionario de dos claves
+        # En vez de 2 listas, un diccionario con 2 claves "exitosos", "fallidos", dependiendo del codigo_salida que esta en [0]
+        # guardo el diccionario de [1] en el diccionario de dos claves
 
     def sumar_requerimientos(self, lista_requerimientos, diccionario_plantilla):
         diccionario_suma_requerimientos = diccionario_plantilla
@@ -385,15 +359,6 @@ class sistema_datos:
 
             json.dump(diccionario_a_escribir, f, ensure_ascii=False, indent=4)
             
-
-
-
-            # diccionario_a_escribir = {diccionario["id_pedido"]:diccionario for diccionario in lista_diccionarios if diccionario["id_pedido"] not in lista_pedidos_fallidos}
-            # for fallido in lista_pedidos_fallidos:
-            #     diccionario_a_escribir[fallido] = {"error":True}
-            # json.dump(diccionario_a_escribir, f, ensure_ascii=False, indent=4)
-
-    # def escribir_archivo_correo(diccionario_pedidos):
     def escribir_archivo_correo(self, lb):
         
         diccionarios_a_escribir = []
@@ -402,33 +367,6 @@ class sistema_datos:
         for y in x:
             # self.ids_nombres_pedido_lista[y][0] me da el id Ej: "3921"
             diccionarios_a_escribir.append(self.diccionario_pedidos_json[self.ids_nombres_pedido_lista[y][0]])
-
-        ascii_correo = """               `.----------------------.`         
-           `/yddyyyydNMNysssssssssssssyyhdh+.     
-         `omy:``    ``:ym+`              `-sds.   
-        `hd-            -dh`                .ym-  
-        ym.              -ms                 `hm` 
- `:::::/Nh:::::::::::::`  sN`                 :M: 
- +MNmyoooooooooooooyNMM+  +M.                 .M+ 
- +M/ydo.         .ody+M+  +M.                 .M+ 
- +M. -sdo-     .ods- .M+  +M.                 .M+ 
- +M.   -hNs-`-sNh-   .M+  +M.                 .M+ 
- +M.  .sdsodydosds.  .M+  +M.                 .M+ 
- +M.-ymo.       .omy-.M+  +M.                 .M+ 
- +Mdmo`           `omdM+  +M.                 .M+ 
- :dddddNMdddddddddddddddddMNddddMNdddddddddddddd: 
-      +N+`              `yN:    Ms                
-     -No               `sN:     Ms                
-     .hhyyhhhhhhhhhhhhhhNd      Ms                
-      `.................dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        hNssssssNs                
-                        `--------`                 """
         
         csv_columns = ["tipo_producto",
             "largo",
@@ -479,22 +417,6 @@ class sistema_datos:
 
         csv_file = r"archivos/correo/Correo.csv"
 
-        # diccionarios_a_escribir = []
-
-        # print("Seleccion:", seleccion_list_box)
-        # print("Id:",ids_nombres_pedido_lista)
-        # print(json.dumps(diccionario_datos_exitosos, indent=4))
-
-        # for seleccion in seleccion_list_box:
-
-        #     print(ids_nombres_pedido_lista[seleccion][0])
-        #     print(diccionario_datos_exitosos[ids_nombres_pedido_lista[seleccion][0]])
-            
-        #     if diccionario_datos_exitosos["id_pedido"] == ids_nombres_pedido_lista[seleccion][0]:
-        #         diccionarios_a_escribir.append()
-
-        #     diccionarios_a_escribir.append(diccionario_datos_exitosos[ids_nombres_pedido_lista[seleccion][0]])
-
         try:
             with open(csv_file, 'w', newline='',encoding="utf-8",) as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=csv_columns, delimiter=";")
@@ -530,52 +452,7 @@ class sistema_datos:
         except IOError:
             print("I/O error")
 
-    def descargar_datos(self, pb):
-
-        ascii_amnesia = """
-                                                                                                            
-       `dh`      -MMd-      `sMMy  -MMm+    `yMo  /MMMNNNNNNNh  .yMMNNNNNNNN` `yMo       +m:        
-      :mMMd.     -MMMM:    `dMMMh  -MMMMm-  `yMo  /MN+          mMd.          `hMo      sMMM+       
-     :MMosMm-    -MMNMMs  :mMhNMh  -MM::MMs.`yMo  /MMmyyyyyyo   +NMdyyyyyy+-  `hMo    .yMd+mMs      
-    oMMo  +Nm:   -MM--dMmyMN: yMh  -MM` .sMNyNMo  /MMh//////:     ://////sMMo `hMo   `dMm-  dMh.    
-   oMNyhs/ :NM+  -MM` `oMMh.  yMh  -MM`   /mMMMo  /MMo........   ........:mMh``hMo  -mMdyh/``sMd`   
-  hNs.      .dNo .NN`   ./    sNy  -NN`     omNo  /NNNNNNNNNNh  +NNNNNNNNNho  `yNo -NN+       omd-  
-                                                                                                    """
-
-        print(ascii_amnesia)
-
-        payload = {'log': "admin",'pwd':'Poludin2020!'}
-        try:
-            s = requests.session()
-            print("Sesion abierta correctamente")
-        except:
-            print("Problema al abrir la sesion")
-
-        try:
-            s.get('https://amnesiagrow.com.ar/wp-login.php')
-            s.post('https://amnesiagrow.com.ar/wp-login.php', data=payload)
-            print("Login completado correctamente")
-        except:
-            print("Problema al logearse")
-
-        numero_pagina_actual = 1
-        cantidad_paginas = numero_pagina_actual
-
-        lista_diccionarios = []
-        lista_pedidos_fallidos = []
-
-        porcentaje_descarga_total = 0
-        porcentaje_descarga_actual = 0
-
-        diccionario_codigo_salida = {
-            0:"exitosos",
-            1:"fallidos"
-        }
-
-        diccionario_pedidos = {
-            "exitosos":[],
-            "fallidos":[]
-        }
+    def obtener_datos_desde_html(self, html):
 
         meses = {
             "enero":"1",
@@ -592,50 +469,90 @@ class sistema_datos:
             "diciembre":"12",
         }
 
+        numero_pedido = html.find("h2", class_="woocommerce-order-data__heading").text.split("#")[-1].strip("\t")
+                
+        fecha_pedido_raw = html.find("p", class_="woocommerce-order-data__meta order_number").text.split("Pagado el ")[1].split(", ")[0].split(" ")
+        fecha_pedido_parsed = f"{fecha_pedido_raw[0]}/{meses[fecha_pedido_raw[1]]}"
+        
+        datos_usuario_raw = [x.find_all('p') for x in html.find_all(class_="address")]
+        datos_usuario_parsed = [re.split("\n|\r",p.get_text("\n")) for x in datos_usuario_raw for p in x]
+
+        dato_numero_calle_raw = [x.find_all('p') for x in html.find_all(class_="order_data_column")]
+        dato_numero_calle_parsed = [x[-1].text.split(": ")[1] for x in dato_numero_calle_raw if "Numero de calle" in str(x)]
+
+        datos_pedido_nombre = [x.text for x in html.find_all(class_="wc-order-item-name")]
+        
+        fila_tabla_datos_productos = html.find_all("tbody", id="order_line_items")
+        datos_pedido_cantidad_raw = [x.find("div",class_="view") for x in fila_tabla_datos_productos[0].find_all("td", class_="quantity")]
+        datos_pedido_cantidad_parsed = [x.text.strip().split(" ")[-1] for x in datos_pedido_cantidad_raw]
+        # datos_pedido_cantidad_raw = [x.find("div",class_="view") for x in html_pedido_individual_parseado.find_all("td", class_="quantity")][:-1]
+
+        return numero_pedido, datos_usuario_parsed, datos_pedido_nombre, datos_pedido_cantidad_parsed, fecha_pedido_parsed, dato_numero_calle_parsed
+
+    def descargar_datos(self, pb):
+
+        print(ascii_amnesia)
+        
+        credenciales = self.obtener_json_desde_archivo(r"archivos/datos/credenciales.json")
+        urls = self.obtener_json_desde_archivo(r"archivos/datos/urls.json")
+
+        payload = {'log': credenciales["usuario"],'pwd':credenciales["contrasenia"]}
+
+        try:
+            sesion = requests.session()
+            print("Sesion abierta correctamente")
+        except:
+            print("Problema al abrir la sesion")
+
+        try:
+            sesion.get(urls["url_login"])
+            sesion.post(urls["url_login"], data=payload)
+            print("Login completado correctamente")
+        except:
+            print("Problema al logearse")
+
+        numero_pagina_actual = 1
+        cantidad_paginas = numero_pagina_actual
+
+        porcentaje_descarga_total = 0
+        porcentaje_descarga_actual = 0
+
+        diccionario_codigo_salida = {
+            0:"exitosos",
+            1:"fallidos"
+        }
+
+        diccionario_pedidos = {
+            "exitosos":[],
+            "fallidos":[]
+        }
+
+
         while cantidad_paginas >= numero_pagina_actual:
 
             try:
-                pagina_pedidos_web = s.get('https://amnesiagrow.com.ar/wp-admin/edit.php?post_status=wc-processing&post_type=shop_order&paged='+str(numero_pagina_actual))
+                pagina_pedidos_web = sesion.get(urls["url_pagina_pedidos"]+str(numero_pagina_actual))
                 print("Pagina obtenida correctamente")        
             except: 
                 print("Problema al obtener la pagina") 
+
             numero_pagina_actual += 1
 
-            soup = BeautifulSoup(pagina_pedidos_web.content, features="html.parser")
+            html_pagina_pedidos_parseado = BeautifulSoup(pagina_pedidos_web.content, features="html.parser")
 
-            cantidad_pedidos = int(soup.find(class_="displaying-num").text.split(" ")[0].strip())
+            cantidad_pedidos = int(html_pagina_pedidos_parseado.find(class_="displaying-num").text.split(" ")[0].strip())
             porcentaje_descarga_total = cantidad_pedidos
             cantidad_paginas = math.ceil(cantidad_pedidos/20)
-            lista_pedidos = [x["href"] for x in soup.find_all(class_="order-view")]
+            lista_pedidos = [x["href"] for x in html_pagina_pedidos_parseado.find_all(class_="order-view")]
 
             for i in range(len(lista_pedidos)):
-
-                pedido_web = s.get(lista_pedidos[i])
-
-                soup2 = BeautifulSoup(pedido_web.content, features="html.parser")
-
-                numero_pedido = soup2.find("h2", class_="woocommerce-order-data__heading").text.split("#")[-1].strip("\t")
-
-                fecha_pedido_raw = soup2.find("p", class_="woocommerce-order-data__meta order_number").text.split("Pagado el ")[1].split(", ")[0].split(" ")
-                fecha_pedido_parsed = f"{fecha_pedido_raw[0]}/{meses[fecha_pedido_raw[1]]}"
                 
-                datos_usuario_raw = [x.find_all('p') for x in soup2.find_all(class_="address")]
+                pedido_web = sesion.get(lista_pedidos[i])
+                html_pedido_individual_parseado = BeautifulSoup(pedido_web.content, features="html.parser")
 
-                dato_numero_calle_raw = [x.find_all('p') for x in soup2.find_all(class_="order_data_column")]
-
-                dato_numero_calle_parsed = [x[-1].text.split(": ")[1] for x in dato_numero_calle_raw if "Numero de calle" in str(x)]
-
-                datos_usuario_parsed = [re.split("\n|\r",p.get_text("\n")) for x in datos_usuario_raw for p in x]
-
-                datos_pedido_nombre = [x.text for x in soup2.find_all(class_="wc-order-item-name")]
-                fila_tabla_datos_productos = soup2.find_all("tbody", id="order_line_items")
-                
-                datos_pedido_cantidad_raw = [x.find("div",class_="view") for x in fila_tabla_datos_productos[0].find_all("td", class_="quantity")]
-
-                # datos_pedido_cantidad_raw = [x.find("div",class_="view") for x in soup2.find_all("td", class_="quantity")][:-1]
-                datos_pedido_cantidad_parsed = [x.text.strip().split(" ")[-1] for x in datos_pedido_cantidad_raw]
+                numero_pedido, datos_usuario, datos_pedido_nombre, datos_pedido_cantidad, fecha_pedido, dato_numero_calle = self.obtener_datos_desde_html(html_pedido_individual_parseado)
          
-                codigo_salida, diccionario_usuario = self.obtener_diccionario_datos(numero_pedido, datos_usuario_parsed, datos_pedido_nombre, datos_pedido_cantidad_parsed, fecha_pedido_parsed, dato_numero_calle_parsed)
+                codigo_salida, diccionario_usuario = self.obtener_diccionario_datos(numero_pedido, datos_usuario, datos_pedido_nombre, datos_pedido_cantidad, fecha_pedido, dato_numero_calle)
                 
                 diccionario_pedidos[diccionario_codigo_salida[codigo_salida]].append(diccionario_usuario)
 
@@ -646,10 +563,6 @@ class sistema_datos:
         return diccionario_pedidos
 
     def copiar_csv_a_ultimo(self, lista_nombres):
-        # fecha_actual = date.today().strftime("%d-%m-%y")
-        # direccion_desde_directorio_local = os.path.join("archivos\csv\historial", fecha_actual)
-        # direccion_a_comprobar = os.path.join(os.getcwd(),direccion_desde_directorio_local)
-        # archivos = [f for f in listdir(direccion_a_comprobar) if isfile(join(direccion_a_comprobar, f))]
 
         folder = r'archivos\csv\ultimo'
         for filename in os.listdir(folder):
@@ -670,7 +583,7 @@ class sistema_datos:
         self.diccionario_pedidos = self.descargar_datos(pb)
         self.escribir_json_lista_diccionarios(self.diccionario_pedidos)
         nombre_archivo_pedidos = self.escribir_csv_lista_pedidos(self.diccionario_pedidos)
-        nombre_archivos_paneles_requerimientos = self.escribir_csv_requerimientos_paneles(self.diccionario_pedidos,self.obtener_datos_productos(r"archivos/json/cantidades.json"))
+        nombre_archivos_paneles_requerimientos = self.escribir_csv_requerimientos_paneles(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos/json/cantidades.json"))
         #["nombre_paneles","nombre_requerimientos"].append("nombre_pedidos") HORRIBLE CAMBIAR
         nombre_archivos_paneles_requerimientos.append(nombre_archivo_pedidos)
         self.copiar_csv_a_ultimo(nombre_archivos_paneles_requerimientos)
@@ -737,7 +650,6 @@ class sistema_datos:
 sistema = sistema_datos()
 sistema.crear_ventana_principal_tk()
 
-# Dejar solo los numeros en el cp
 
 # Crear una ventana de tk con 2 botones y una barra de carga en una funcion
 # Boton 1: Descargar datos
