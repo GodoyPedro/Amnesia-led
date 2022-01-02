@@ -293,8 +293,8 @@ class sistema_datos:
             print("I/O error")
 
     def escribir_excel(self):
-
-        time.sleep(2)    
+        
+        tk.Frame().destroy()
 
         archivos = [f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]
         diccionario_nombre_archivos = {archivo.split("_")[1]:os.path.join(r"archivos\csv\ultimo",archivo) for archivo in archivos}
@@ -571,6 +571,8 @@ class sistema_datos:
 
     def copiar_csv_a_ultimo(self):
 
+        tiempo_espera_maximo = 10
+
         folder = r'archivos\csv\ultimo'
         for filename in os.listdir(folder):
             file_path = os.path.join(folder, filename)
@@ -586,6 +588,11 @@ class sistema_datos:
 
         for archivo in [self.direccion_csv_pedidos, self.direccion_csv_paneles, self.direccion_csv_requerimientos]:
             shutil.copyfile(archivo, os.path.join(r'archivos\csv\ultimo',archivo.split("\\")[-1]))
+        
+        while not any([f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]) and tiempo_espera_maximo > 0:
+            time.sleep(1)
+            tiempo_espera_maximo -= 1
+
 
     def iniciar_descarga_datos(self, pb, label):
         
@@ -595,7 +602,6 @@ class sistema_datos:
         self.escribir_csv_requerimientos_paneles(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
         self.copiar_csv_a_ultimo()
         time.sleep(2)
-        tk.Frame().destroy()
         self.escribir_excel()
         texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join([pedido['id_pedido'] for pedido in self.diccionario_pedidos['fallidos']])}"
         label["text"] = texto_pedidos_fallidos
