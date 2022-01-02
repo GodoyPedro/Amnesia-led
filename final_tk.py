@@ -8,16 +8,18 @@ class sistema_datos:
         self.diccionario_pedidos_json = {}
         self.ids_nombres_pedido_lista = []
         self.ids_nombres_pedido_parsed = []
+        self.direccion_csv_pedidos = ""
+        self.direccion_csv_paneles = ""
+        self.direccion_csv_requerimientos = ""
         self.diccionario_pedidos = {
             "exitosos":[],
             "fallidos":[]
         }
 
     def comparador_fechas(self, fecha_diccionario_1, fecha_diccionario_2):
-        fecha_1 = fecha_diccionario_1["fecha"]
-        fecha_2 = fecha_diccionario_2["fecha"]
-        dia_1,mes_1 = list(map(int,fecha_1.split("/")))
-        dia_2,mes_2 = list(map(int,fecha_2.split("/")))
+
+        dia_1,mes_1 = list(map(int,fecha_diccionario_1["fecha"].split("/")))
+        dia_2,mes_2 = list(map(int,fecha_diccionario_2["fecha"].split("/")))
         if mes_1 < mes_2:
             return 1
         elif mes_1 == mes_2:
@@ -148,12 +150,13 @@ class sistema_datos:
         return diccionario_suma_requerimientos
 
     def escribir_csv_requerimientos_paneles(self, diccionario_pedidos, datos_productos):
+
         csv_columns = ["Cantidades", "Full Specturm", "Mixto", "Calido"]
         fecha = f'{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}'
         fecha_actual = date.today().strftime("%d-%m-%y")
-        direccion_desde_directorio_local = os.path.join("archivos/csv/historial", fecha_actual)
-        csv_nombre_paneles = os.path.join(direccion_desde_directorio_local, f'lista_paneles_{fecha}.csv')
-        csv_nombre_requerimientos = os.path.join(direccion_desde_directorio_local, f'lista_requerimientos_{fecha}.csv')
+        direccion_desde_directorio_local = os.path.join(r"archivos\csv\historial", fecha_actual)
+        self.direccion_csv_paneles = os.path.join(direccion_desde_directorio_local, f'lista_paneles_{fecha}.csv')
+        self.direccion_csv_requerimientos = os.path.join(direccion_desde_directorio_local, f'lista_requerimientos_{fecha}.csv')
 
         diccionario_indices_tipos = {
             "f":0,
@@ -215,7 +218,7 @@ class sistema_datos:
         diccionario_suma_requerimientos = self.sumar_requerimientos(lista_requerimientos_productos, datos_productos["plantilla"])
         
         try:
-            with open(csv_nombre_paneles, 'w', newline='') as csvfile:
+            with open(self.direccion_csv_paneles, 'w', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
                 writer.writeheader()
 
@@ -231,26 +234,26 @@ class sistema_datos:
             print("I/O error")
 
         try:
-            with open(csv_nombre_requerimientos, 'w', newline='') as csvfile:
+            with open(self.direccion_csv_requerimientos, 'w', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=claves_importantes)
                 writer.writeheader()
                 writer.writerow({clave:diccionario_suma_requerimientos[clave] for clave in claves_importantes})
         except IOError:
             print("I/O error")
-        
-        return [csv_nombre_paneles,csv_nombre_requerimientos]
+
                 
     def escribir_csv_lista_pedidos(self, diccionario_pedidos):
         csv_columns = ["Id_Pedido", "Fecha", "Nombre", "Datos_pedido"]
         fecha_actual = date.today().strftime("%d-%m-%y")
-        direccion_desde_directorio_local = os.path.join("archivos/csv/historial", fecha_actual)
+        direccion_desde_directorio_local = os.path.join(r"archivos\csv\historial", fecha_actual)
         direccion_a_comprobar = os.path.join(os.getcwd(),direccion_desde_directorio_local)
         if not os.path.exists(direccion_a_comprobar):   
             os.makedirs(direccion_a_comprobar)
 
-        direccion_csv = os.path.join(direccion_desde_directorio_local, f'lista_pedidos_{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}.csv')
+        self.direccion_csv_pedidos = os.path.join(direccion_desde_directorio_local, f'lista_pedidos_{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}.csv')
+
         try:
-            with open(direccion_csv, 'w', newline='') as csvfile:
+            with open(self.direccion_csv_pedidos, 'w', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
                 writer.writeheader()
 
@@ -286,7 +289,6 @@ class sistema_datos:
 
             self.ids_nombres_pedido_parsed = list(map(" ".join,self.ids_nombres_pedido_lista))
 
-            return direccion_csv
         except IOError:
             print("I/O error")
 
@@ -294,8 +296,8 @@ class sistema_datos:
 
         time.sleep(2)    
 
-        archivos = [f for f in listdir(r"archivos/csv/ultimo") if isfile(join(r"archivos/csv/ultimo", f))]
-        diccionario_nombre_archivos = {archivo.split("_")[1]:os.path.join(r"archivos/csv/ultimo",archivo) for archivo in archivos}
+        archivos = [f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]
+        diccionario_nombre_archivos = {archivo.split("_")[1]:os.path.join(r"archivos\csv\ultimo",archivo) for archivo in archivos}
 
         arial36b = tkFont.Font(family='Calibri', size=11, weight='normal')
 
@@ -349,7 +351,7 @@ class sistema_datos:
 
     def escribir_json_lista_diccionarios(self, diccionario_pedidos):
 
-        with open(r'archivos/json/datos_pedidos.json', 'w', encoding='utf-8') as f:
+        with open(r'archivos\json\datos_pedidos.json', 'w', encoding='utf-8') as f:
 
             lista_pedidos_completa = [elemento for sub_lista in diccionario_pedidos.values() for elemento in sub_lista]
 
@@ -415,7 +417,7 @@ class sistema_datos:
             "tierra del fuego":"V",
             "tucuman":"T"}
 
-        csv_file = r"archivos/correo/Correo.csv"
+        csv_file = r"archivos\correo\Correo.csv"
 
         try:
             with open(csv_file, 'w', newline='',encoding="utf-8",) as csvfile:
@@ -493,8 +495,8 @@ class sistema_datos:
 
         print(ascii_amnesia)
         
-        credenciales = self.obtener_json_desde_archivo(r"archivos/datos/credenciales.json")
-        urls = self.obtener_json_desde_archivo(r"archivos/datos/urls.json")
+        credenciales = self.obtener_json_desde_archivo(r"archivos\datos\credenciales.json")
+        urls = self.obtener_json_desde_archivo(r"archivos\datos\urls.json")
 
         payload = {'log': credenciales["usuario"],'pwd':credenciales["contrasenia"]}
 
@@ -552,7 +554,12 @@ class sistema_datos:
 
                 numero_pedido, datos_usuario, datos_pedido_nombre, datos_pedido_cantidad, fecha_pedido, dato_numero_calle = self.obtener_datos_desde_html(html_pedido_individual_parseado)
          
-                codigo_salida, diccionario_usuario = self.obtener_diccionario_datos(numero_pedido, datos_usuario, datos_pedido_nombre, datos_pedido_cantidad, fecha_pedido, dato_numero_calle)
+                codigo_salida, diccionario_usuario = self.obtener_diccionario_datos(numero_pedido, 
+                                                                                    datos_usuario, 
+                                                                                    datos_pedido_nombre, 
+                                                                                    datos_pedido_cantidad, 
+                                                                                    fecha_pedido, 
+                                                                                    dato_numero_calle)
                 
                 diccionario_pedidos[diccionario_codigo_salida[codigo_salida]].append(diccionario_usuario)
 
@@ -562,7 +569,7 @@ class sistema_datos:
 
         return diccionario_pedidos
 
-    def copiar_csv_a_ultimo(self, lista_nombres):
+    def copiar_csv_a_ultimo(self):
 
         folder = r'archivos\csv\ultimo'
         for filename in os.listdir(folder):
@@ -575,18 +582,18 @@ class sistema_datos:
             except Exception as e:
                 print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-        for archivo in lista_nombres:
-            shutil.copyfile(archivo, os.path.join('archivos/csv/ultimo',archivo.split("\\")[-1]))
+        print([self.direccion_csv_pedidos, self.direccion_csv_paneles, self.direccion_csv_requerimientos])
+
+        for archivo in [self.direccion_csv_pedidos, self.direccion_csv_paneles, self.direccion_csv_requerimientos]:
+            shutil.copyfile(archivo, os.path.join(r'archivos\csv\ultimo',archivo.split("\\")[-1]))
 
     def iniciar_descarga_datos(self, pb, label):
         
         self.diccionario_pedidos = self.descargar_datos(pb)
         self.escribir_json_lista_diccionarios(self.diccionario_pedidos)
-        nombre_archivo_pedidos = self.escribir_csv_lista_pedidos(self.diccionario_pedidos)
-        nombre_archivos_paneles_requerimientos = self.escribir_csv_requerimientos_paneles(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos/json/cantidades.json"))
-        #["nombre_paneles","nombre_requerimientos"].append("nombre_pedidos") HORRIBLE CAMBIAR
-        nombre_archivos_paneles_requerimientos.append(nombre_archivo_pedidos)
-        self.copiar_csv_a_ultimo(nombre_archivos_paneles_requerimientos)
+        self.escribir_csv_lista_pedidos(self.diccionario_pedidos)
+        self.escribir_csv_requerimientos_paneles(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
+        self.copiar_csv_a_ultimo()
         time.sleep(2)
         tk.Frame().destroy()
         self.escribir_excel()
@@ -694,7 +701,7 @@ sistema.crear_ventana_principal_tk()
 #   
 #   Paso 3:
 #   nombre_archivo_pedidos = self.escribir_csv_lista_pedidos(diccionario_pedidos_global)
-#   nombre_archivos_paneles_requerimientos = self.escribir_csv_requerimientos_paneles(diccionario_pedidos_global,self.obtener_datos_productos(r"archivos/json/cantidades.json"))
+#   nombre_archivos_paneles_requerimientos = self.escribir_csv_requerimientos_paneles(diccionario_pedidos_global,self.obtener_datos_productos(r"archivos\json\cantidades.json"))
 #   
 #   Escribo los 3 archivos .csv que necesito para conformar un excel.
 #   El primero es "lista_pedidos", las columnas son "Id_Pedido, Fecha, Nombre, Datos_pedido"
