@@ -149,14 +149,22 @@ class sistema_datos:
 
         return diccionario_suma_requerimientos
 
-    def escribir_csv_requerimientos_paneles(self, diccionario_pedidos, datos_productos):
+    def escribir_archivos_csv(self, diccionario_pedidos, datos_productos):
 
-        csv_columns = ["Cantidades", "Full Specturm", "Mixto", "Calido"]
-        fecha = f'{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}'
+        encabezado_columnas_pedidos = ["Id_Pedido", "Fecha", "Nombre", "Datos_pedido"]
+        encabezado_columnas_paneles = ["Cantidades", "Full Specturm", "Mixto", "Calido"]
+
         fecha_actual = date.today().strftime("%d-%m-%y")
         direccion_desde_directorio_local = os.path.join(r"archivos\csv\historial", fecha_actual)
+        direccion_a_comprobar = os.path.join(os.getcwd(),direccion_desde_directorio_local)
+        fecha = f'{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}'
+
         self.direccion_csv_paneles = os.path.join(direccion_desde_directorio_local, f'lista_paneles_{fecha}.csv')
         self.direccion_csv_requerimientos = os.path.join(direccion_desde_directorio_local, f'lista_requerimientos_{fecha}.csv')
+        self.direccion_csv_pedidos = os.path.join(direccion_desde_directorio_local, f'lista_pedidos_{fecha}.csv')
+        
+        if not os.path.exists(direccion_a_comprobar):   
+            os.makedirs(direccion_a_comprobar)
 
         diccionario_indices_tipos = {
             "f":0,
@@ -216,51 +224,14 @@ class sistema_datos:
                     diccionario_cantidad_paneles[codigo][0] += int(cantidad) 
 
         diccionario_suma_requerimientos = self.sumar_requerimientos(lista_requerimientos_productos, datos_productos["plantilla"])
-        
-        try:
-            with open(self.direccion_csv_paneles, 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
-                writer.writeheader()
-
-                for clave in claves:
-                    diccionario_a_escribir = {
-                        "Cantidades":clave,
-                        "Full Specturm":diccionario_cantidad_paneles[clave][0],
-                        "Mixto":diccionario_cantidad_paneles[clave][1],
-                        "Calido":diccionario_cantidad_paneles[clave][2]
-                    }
-                    writer.writerow(diccionario_a_escribir)
-        except IOError:
-            print("I/O error")
-
-        try:
-            with open(self.direccion_csv_requerimientos, 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=claves_importantes)
-                writer.writeheader()
-                writer.writerow({clave:diccionario_suma_requerimientos[clave] for clave in claves_importantes})
-        except IOError:
-            print("I/O error")
-
-                
-    def escribir_csv_lista_pedidos(self, diccionario_pedidos):
-        csv_columns = ["Id_Pedido", "Fecha", "Nombre", "Datos_pedido"]
-        fecha_actual = date.today().strftime("%d-%m-%y")
-        direccion_desde_directorio_local = os.path.join(r"archivos\csv\historial", fecha_actual)
-        direccion_a_comprobar = os.path.join(os.getcwd(),direccion_desde_directorio_local)
-        if not os.path.exists(direccion_a_comprobar):   
-            os.makedirs(direccion_a_comprobar)
-
-        self.direccion_csv_pedidos = os.path.join(direccion_desde_directorio_local, f'lista_pedidos_{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}.csv')
 
         try:
             with open(self.direccion_csv_pedidos, 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+                writer = csv.DictWriter(csvfile, fieldnames=encabezado_columnas_pedidos)
                 writer.writeheader()
 
                 fecha_anterior = ""
                 fecha_a_escribir = ""
-
-                #La lista esta parece que viene ordenada por id, necesito que este por fecha para que en el excel salga bien
 
                 lista_pedidos_completa = [elemento for sub_lista in diccionario_pedidos.values() for elemento in sub_lista]
                 
@@ -291,6 +262,173 @@ class sistema_datos:
 
         except IOError:
             print("I/O error")
+
+        try:
+            with open(self.direccion_csv_paneles, 'w', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=encabezado_columnas_paneles)
+                writer.writeheader()
+
+                for clave in claves:
+                    diccionario_a_escribir = {
+                        "Cantidades":clave,
+                        "Full Specturm":diccionario_cantidad_paneles[clave][0],
+                        "Mixto":diccionario_cantidad_paneles[clave][1],
+                        "Calido":diccionario_cantidad_paneles[clave][2]
+                    }
+                    writer.writerow(diccionario_a_escribir)
+        except IOError:
+            print("I/O error")
+
+        try:
+            with open(self.direccion_csv_requerimientos, 'w', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=claves_importantes)
+                writer.writeheader()
+                writer.writerow({clave:diccionario_suma_requerimientos[clave] for clave in claves_importantes})
+        except IOError:
+            print("I/O error")
+
+    # def escribir_csv_requerimientos_paneles(self, diccionario_pedidos, datos_productos):
+
+    #     csv_columns = ["Cantidades", "Full Specturm", "Mixto", "Calido"]
+    #     fecha = f'{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}'
+    #     fecha_actual = date.today().strftime("%d-%m-%y")
+    #     direccion_desde_directorio_local = os.path.join(r"archivos\csv\historial", fecha_actual)
+    #     self.direccion_csv_paneles = os.path.join(direccion_desde_directorio_local, f'lista_paneles_{fecha}.csv')
+    #     self.direccion_csv_requerimientos = os.path.join(direccion_desde_directorio_local, f'lista_requerimientos_{fecha}.csv')
+
+    #     diccionario_indices_tipos = {
+    #         "f":0,
+    #         "m":1,
+    #         "c":2
+    #     }
+    #     diccionario_cantidad_paneles = {
+    #         "100":[0,0,0],
+    #         "200":[0,0,0],
+    #         "300":[0,0,0],
+    #         "400":[0,0,0],
+    #         "500":[0,0,0],
+    #         "ctz":[0,0,0],
+    #         "sam":[0,0,0],
+    #         "0":[0,0,0]
+    #     }
+    #     diccionario_a_escribir = {
+    #         "Cantidades":"",
+    #         "Full Specturm":"",
+    #         "Mixto":"",
+    #         "Calido":""
+    #     }
+    #     claves_importantes = [
+    #         "led_full",
+    #         "led_calido",
+    #         "chapa_atras",
+    #         "chapa_adelante",
+    #         "ficha_macho",
+    #         "cooler",
+    #         "chapa_canaleta_100_200",
+    #         "chapa_canaleta_300",
+    #         "chapa_canaleta_400_500",
+    #         "chapa_doble",
+    #         "remaches",
+    #         "conector_doble",
+    #         "prensacable",
+    #         "timer",
+    #         "poleas",
+    #         "carpa_60x60",
+    #         "carpa_80x80",
+    #         "carpa_100x100",
+    #         "carpa_120x120"
+    #     ]
+    #     lista_requerimientos_productos = []
+    #     claves = list(diccionario_cantidad_paneles.keys())[:-1]
+
+    #     lista_pedidos_completa = [elemento for sub_lista in diccionario_pedidos.values() for elemento in sub_lista]
+
+    #     for diccionario in lista_pedidos_completa:
+    #         for producto in diccionario["productos"]:
+    #             nombre = producto[0]
+    #             lista_requerimientos_productos.append(datos_productos[nombre])
+    #             codigo, cantidad = datos_productos[nombre]["id_panel"].split(" x ")
+    #             if codigo != "ctz" and codigo != "sam" and codigo != "0" and codigo != "error":
+    #                 diccionario_cantidad_paneles[codigo[:-1]][diccionario_indices_tipos[codigo[-1]]] += int(cantidad) 
+    #             else:
+    #                 diccionario_cantidad_paneles[codigo][0] += int(cantidad) 
+
+    #     diccionario_suma_requerimientos = self.sumar_requerimientos(lista_requerimientos_productos, datos_productos["plantilla"])
+        
+    #     try:
+    #         with open(self.direccion_csv_paneles, 'w', newline='') as csvfile:
+    #             writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+    #             writer.writeheader()
+
+    #             for clave in claves:
+    #                 diccionario_a_escribir = {
+    #                     "Cantidades":clave,
+    #                     "Full Specturm":diccionario_cantidad_paneles[clave][0],
+    #                     "Mixto":diccionario_cantidad_paneles[clave][1],
+    #                     "Calido":diccionario_cantidad_paneles[clave][2]
+    #                 }
+    #                 writer.writerow(diccionario_a_escribir)
+    #     except IOError:
+    #         print("I/O error")
+
+    #     try:
+    #         with open(self.direccion_csv_requerimientos, 'w', newline='') as csvfile:
+    #             writer = csv.DictWriter(csvfile, fieldnames=claves_importantes)
+    #             writer.writeheader()
+    #             writer.writerow({clave:diccionario_suma_requerimientos[clave] for clave in claves_importantes})
+    #     except IOError:
+    #         print("I/O error")
+
+                
+    # def escribir_csv_lista_pedidos(self, diccionario_pedidos):
+    #     csv_columns = ["Id_Pedido", "Fecha", "Nombre", "Datos_pedido"]
+    #     fecha_actual = date.today().strftime("%d-%m-%y")
+    #     direccion_desde_directorio_local = os.path.join(r"archivos\csv\historial", fecha_actual)
+    #     direccion_a_comprobar = os.path.join(os.getcwd(),direccion_desde_directorio_local)
+    #     if not os.path.exists(direccion_a_comprobar):   
+    #         os.makedirs(direccion_a_comprobar)
+
+    #     self.direccion_csv_pedidos = os.path.join(direccion_desde_directorio_local, f'lista_pedidos_{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}.csv')
+
+    #     try:
+    #         with open(self.direccion_csv_pedidos, 'w', newline='') as csvfile:
+    #             writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+    #             writer.writeheader()
+
+    #             fecha_anterior = ""
+    #             fecha_a_escribir = ""
+
+    #             #La lista esta parece que viene ordenada por id, necesito que este por fecha para que en el excel salga bien
+
+    #             lista_pedidos_completa = [elemento for sub_lista in diccionario_pedidos.values() for elemento in sub_lista]
+                
+    #             lista_pedidos_completa.sort(key=cmp_to_key(self.comparador_fechas),reverse=True)
+
+    #             for diccionario in lista_pedidos_completa:
+                    
+    #                 fecha_actual = diccionario["fecha"]
+    #                 if fecha_anterior != fecha_actual:
+    #                     fecha_a_escribir = fecha_actual
+    #                 elif fecha_anterior == fecha_actual:
+    #                     fecha_a_escribir = " "
+
+    #                 fecha_anterior = fecha_actual
+
+    #                 diccionario_a_escribir = {
+    #                     "Id_Pedido": diccionario["id_pedido"],
+    #                     "Fecha": fecha_a_escribir,
+    #                     "Nombre": diccionario["facturacion"]["nombre"],
+    #                     "Datos_pedido": " --- ".join([" ".join(x) for x in diccionario["productos"]])
+    #                 }
+
+    #                 self.ids_nombres_pedido_lista.append([diccionario["id_pedido"],diccionario["facturacion"]["nombre"]])
+
+    #                 writer.writerow(diccionario_a_escribir)
+
+    #         self.ids_nombres_pedido_parsed = list(map(" ".join,self.ids_nombres_pedido_lista))
+
+    #     except IOError:
+    #         print("I/O error")
 
     def escribir_excel(self):
         
@@ -487,7 +625,6 @@ class sistema_datos:
         fila_tabla_datos_productos = html.find_all("tbody", id="order_line_items")
         datos_pedido_cantidad_raw = [x.find("div",class_="view") for x in fila_tabla_datos_productos[0].find_all("td", class_="quantity")]
         datos_pedido_cantidad_parsed = [x.text.strip().split(" ")[-1] for x in datos_pedido_cantidad_raw]
-        # datos_pedido_cantidad_raw = [x.find("div",class_="view") for x in html_pedido_individual_parseado.find_all("td", class_="quantity")][:-1]
 
         return numero_pedido, datos_usuario_parsed, datos_pedido_nombre, datos_pedido_cantidad_parsed, fecha_pedido_parsed, dato_numero_calle_parsed
 
@@ -594,14 +731,15 @@ class sistema_datos:
             tiempo_espera_maximo -= 1
 
 
+
     def iniciar_descarga_datos(self, pb, label):
         
         self.diccionario_pedidos = self.descargar_datos(pb)
         self.escribir_json_lista_diccionarios(self.diccionario_pedidos)
-        self.escribir_csv_lista_pedidos(self.diccionario_pedidos)
-        self.escribir_csv_requerimientos_paneles(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
+        # self.escribir_csv_lista_pedidos(self.diccionario_pedidos)
+        # self.escribir_csv_requerimientos_paneles(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
+        self.escribir_archivos_csv(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
         self.copiar_csv_a_ultimo()
-        time.sleep(2)
         self.escribir_excel()
         texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join([pedido['id_pedido'] for pedido in self.diccionario_pedidos['fallidos']])}"
         label["text"] = texto_pedidos_fallidos
