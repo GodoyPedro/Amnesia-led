@@ -1,7 +1,7 @@
-credenciales.json
 __pycache__
 correo/
 csv/
 excel/
-datos_pedidos.json
-archivos/correo/Correo.csv
+json/
+datos/
+
