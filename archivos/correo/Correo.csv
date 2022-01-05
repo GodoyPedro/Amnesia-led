@@ -1,6 +1,0 @@
-tipo_producto;largo;ancho;altura;peso;valor_del_contenido;provincia_destino;sucursal_destino;localidad_destino;calle_destino;altura_destino;piso;dpto;codpostal_destino;destino_nombre;destino_email;cod_area_tel;tel;cod_area_cel;cel
-CP;20;20;20;2;2000;B;;Mercedes;28;782;;;6600;Gonzalo Bonamino;gonzabona16@gmail.com;;;23;24553264
-CP;20;20;20;2;2000;U;;Comodoro Rivadavia;Av estados unidos;127;;;9000;Lucas calizaya;aromshelby@gmail.com;;;29;75441667
-CP;20;20;20;2;2000;D;;San luis;San Martin;801;;;5700;Julieta Pelegrin;pelegrin.2002@gmail.com;;;26;64897601
-CP;20;20;20;2;2000;J;;Rawson;Agustin Gomez;1598;;;5425;Juan Manuel Castilla Heredia;juanmacastilla123@gmail.com;;;26;45119993
-CP;20;20;20;2;2000;S;;Rasario;Crespo;610;;;2000;Arthur Fernandes Ramalho Diniz;arthurdiniz9@hotmail.com;;;34;13532432
