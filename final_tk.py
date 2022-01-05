@@ -574,6 +574,7 @@ class sistema_datos:
             porcentaje_descarga_total = cantidad_pedidos
             cantidad_paginas = math.ceil(cantidad_pedidos/20)
             lista_pedidos = [x["href"] for x in html_pagina_pedidos_parseado.find_all(class_="order-view")]
+            print(f"Pedidos totales: {cantidad_pedidos}")
 
             for i in range(len(lista_pedidos)):
                 
@@ -592,8 +593,9 @@ class sistema_datos:
                 diccionario_pedidos[diccionario_codigo_salida[codigo_salida]].append(diccionario_usuario)
 
                 porcentaje_descarga_actual += 1
-                print(f"Porcentaje descargado: {porcentaje_descarga_actual*100//porcentaje_descarga_total}")
+
                 self.mover_barra_progreso(porcentaje_descarga_actual*100//porcentaje_descarga_total, pb)
+                print(f"Pedidos restantes: {cantidad_pedidos - porcentaje_descarga_actual}")
 
         return diccionario_pedidos
 
@@ -621,7 +623,9 @@ class sistema_datos:
             time.sleep(1)
             tiempo_espera_maximo -= 1
 
-
+    def asignar_texto_pedidos_fallidos(self, label):
+        texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join([pedido['id_pedido'] for pedido in self.diccionario_pedidos['fallidos']])}"
+        label["text"] = texto_pedidos_fallidos
 
     def iniciar_descarga_datos(self, pb, label):
         
@@ -630,8 +634,7 @@ class sistema_datos:
         self.escribir_archivos_csv(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
         self.copiar_csv_a_ultimo()
         self.escribir_excel()
-        texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join([pedido['id_pedido'] for pedido in self.diccionario_pedidos['fallidos']])}"
-        label["text"] = texto_pedidos_fallidos
+        self.asignar_texto_pedidos_fallidos(label)
 
     def escribir_archivo_correo_tk(self, diccionario_datos_exitosos, ids_nombres_pedido_lista, list_box):
         pass
