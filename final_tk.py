@@ -42,8 +42,8 @@ class sistema_datos:
         except FileNotFoundError:
             raise FileNotFoundError
 
-    def sacar_tildes(self, s):
-        return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+    def sacar_tildes(self, texto):
+        return ''.join(x for x in unicodedata.normalize('NFD', texto) if unicodedata.category(x) != 'Mn')
 
     def limpiar_texto(self, texto):
         return self.sacar_tildes("".join([x for x in texto if x==" " or x in "0123456789" or x.isalpha()]))
@@ -160,8 +160,8 @@ class sistema_datos:
         fecha = f'{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}'
 
         self.direccion_csv_paneles_ultimo = os.path.join(r"archivos\csv\ultimo", f'lista_paneles_{fecha}.csv')
-        self.direccion_csv_requerimientos_ultimo = os.path.join(r"archivos\csv\ultimo", f'lista_paneles_{fecha}.csv')
-        self.direccion_csv_pedidos_ultimo = os.path.join(r"archivos\csv\ultimo", f'lista_paneles_{fecha}.csv')
+        self.direccion_csv_requerimientos_ultimo = os.path.join(r"archivos\csv\ultimo", f'lista_requerimientos_{fecha}.csv')
+        self.direccion_csv_pedidos_ultimo = os.path.join(r"archivos\csv\ultimo", f'lista_pedidos_{fecha}.csv')
 
         self.direccion_csv_paneles = os.path.join(direccion_desde_directorio_local, f'lista_paneles_{fecha}.csv')
         self.direccion_csv_requerimientos = os.path.join(direccion_desde_directorio_local, f'lista_requerimientos_{fecha}.csv')
@@ -169,8 +169,6 @@ class sistema_datos:
         
         if not os.path.exists(direccion_a_comprobar):   
             os.makedirs(direccion_a_comprobar)
-
-
 
         ## Borro los archivos de la carpeta ultimo
         folder = r'archivos\csv\ultimo'
@@ -188,8 +186,10 @@ class sistema_datos:
 
         while not any([f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]) and tiempo_espera_maximo > 0:
             time.sleep(1)
+            print("Esperando")
             tiempo_espera_maximo -= 1
 
+        #Full-Spectrum, Mixto, Calido
         diccionario_indices_tipos = {
             "f":0,
             "m":1,
@@ -250,7 +250,7 @@ class sistema_datos:
         diccionario_suma_requerimientos = self.sumar_requerimientos(lista_requerimientos_productos, datos_productos["plantilla"])
 
         try:
-            with open(self.direccion_csv_pedidos, 'w', newline='') as archivo_historial, open(self.direccion_csv_paneles_ultimo, 'w', newline='') as archivo_ultimo:
+            with open(self.direccion_csv_pedidos, 'w', newline='') as archivo_historial, open(self.direccion_csv_pedidos_ultimo, 'w', newline='') as archivo_ultimo:
                 escritor_csv_historial = csv.DictWriter(archivo_historial, fieldnames=encabezado_columnas_pedidos)
                 escritor_csv_ultimo = csv.DictWriter(archivo_ultimo, fieldnames=encabezado_columnas_pedidos)
                 escritor_csv_historial.writeheader()
@@ -290,6 +290,7 @@ class sistema_datos:
         except IOError:
             print("I/O error")
 
+
         try:
             with open(self.direccion_csv_paneles, 'w', newline='') as archivo_historial, open(self.direccion_csv_paneles_ultimo, 'w', newline='') as archivo_ultimo:
                 escritor_csv_historial = csv.DictWriter(archivo_historial, fieldnames=encabezado_columnas_paneles)
@@ -323,81 +324,79 @@ class sistema_datos:
 
     def escribir_excel(self):
         
+        tiempo_espera_maximo = 10
+
+        while len([f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]) != 3 and tiempo_espera_maximo > 0:
+            time.sleep(1)
+            print("Esperando")
+            tiempo_espera_maximo -= 1
+
         tk.Frame().destroy()
 
-        archivos = [f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]
-        diccionario_nombre_archivos = {archivo.split("_")[1]:os.path.join(r"archivos\csv\ultimo",archivo) for archivo in archivos}
-
-        arial36b = tkFont.Font(family='Calibri', size=11, weight='normal')
-
-        wb = openpyxl.Workbook()
-        wb.create_sheet(index=0, title="Lista_pedidos")
-        ws = wb.active
-
+        fuente_calibri_11 = tkFont.Font(family='Calibri', size=11, weight='normal')
+        excel = openpyxl.Workbook()
+        excel.create_sheet(index=0, title="Lista_pedidos")
+        libro_actual = excel.active
         largo_maximo_nombre = []
 
-        with open(diccionario_nombre_archivos["pedidos"],'r',encoding="utf-8") as f:
-            reader = csv.reader(f, delimiter=',')
+        with open(self.direccion_csv_pedidos_ultimo,'r',encoding="utf-8") as f:
+            lector_csv = csv.reader(f, delimiter=',')
 
-            for row in reader:
-                largo_maximo_nombre.append(arial36b.measure(row[2]))
-                ws.append(row)
+            for fila in lector_csv:
+                largo_maximo_nombre.append(fuente_calibri_11.measure(fila[2]))
+                libro_actual.append(fila)
 
         #excel deja 3 pixeles delante de la palabra y 5 detras
         #la funcion para convertir pixeles a la unidad de excel es unidad_excel(pixeles) = (pixeles - 5) / 7
-        ws.column_dimensions["c"].width = math.ceil(((max(largo_maximo_nombre)+3+5)-5)/7)+2
+        libro_actual.column_dimensions["c"].width = math.ceil(((max(largo_maximo_nombre)+3+5)-5)/7)+2
 
-        wb.active = 1
-        wb.active.title = "Lista_paneles"
-        ws = wb.active
+        excel.active = 1
+        excel.active.title = "Lista_paneles"
+        libro_actual = excel.active
 
-        with open(diccionario_nombre_archivos["paneles"],'r',encoding="utf-8") as f:
-            reader = csv.reader(f, delimiter=',')
-            for row in reader:
-                ws.append(row)
+        with open(self.direccion_csv_paneles_ultimo,'r',encoding="utf-8") as f:
+            lector_csv = csv.reader(f, delimiter=',')
+            for fila in lector_csv:
+                libro_actual.append(fila)
 
-        wb.create_sheet()
-        wb.active = 2
-        wb.active.title = "Lista_requerimientos"
-        ws = wb.active
+        excel.create_sheet()
+        excel.active = 2
+        excel.active.title = "Lista_requerimientos"
+        libro_actual = excel.active
 
         largo_maximo_requerimiento = []
 
-        with open(diccionario_nombre_archivos["requerimientos"],'r',encoding="utf-8") as f:
-            reader = csv.DictReader(f, delimiter=",")
+        with open(self.direccion_csv_requerimientos_ultimo,'r',encoding="utf-8") as f:
+            lector_csv = csv.DictReader(f, delimiter=",")
 
-            for par_clave_valor in dict(*reader).items():
-                largo_maximo_requerimiento.append(arial36b.measure(par_clave_valor[0]))
-                ws.append(par_clave_valor)
+            for par_clave_valor in dict(*lector_csv).items():
+                largo_maximo_requerimiento.append(fuente_calibri_11.measure(par_clave_valor[0]))
+                libro_actual.append(par_clave_valor)
 
-        ws.column_dimensions["a"].width = math.ceil(((max(largo_maximo_requerimiento)+3+5)-5)/7)+3
+        libro_actual.column_dimensions["a"].width = math.ceil(((max(largo_maximo_requerimiento)+3+5)-5)/7)+3
 
         direccion_desde_directorio_local = r"archivos\excel"
 
         direccion_excel = os.path.join(direccion_desde_directorio_local, f'planilla_completa_{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}.xlsx')
 
-        wb.save(direccion_excel)
+        excel.save(direccion_excel)
 
     def escribir_json_lista_diccionarios(self, diccionario_pedidos):
 
         with open(r'archivos\json\datos_pedidos.json', 'w', encoding='utf-8') as f:
-
             lista_pedidos_completa = [elemento for sub_lista in diccionario_pedidos.values() for elemento in sub_lista]
-
             diccionario_a_escribir = {diccionario["id_pedido"]:diccionario for diccionario in lista_pedidos_completa}
-
             self.diccionario_pedidos_json = diccionario_a_escribir
-
             json.dump(diccionario_a_escribir, f, ensure_ascii=False, indent=4)
             
     def escribir_archivo_correo(self, lb):
         
         diccionarios_a_escribir = []
 
-        x = lb.curselection()
-        for y in x:
+        lista_seleccion_list_box = lb.curselection()
+        for seleccion in lista_seleccion_list_box:
             # self.ids_nombres_pedido_lista[y][0] me da el id Ej: "3921"
-            diccionarios_a_escribir.append(self.diccionario_pedidos_json[self.ids_nombres_pedido_lista[y][0]])
+            diccionarios_a_escribir.append(self.diccionario_pedidos_json[self.ids_nombres_pedido_lista[seleccion][0]])
         
         csv_columns = ["tipo_producto",
             "largo",
@@ -557,7 +556,6 @@ class sistema_datos:
             "fallidos":[]
         }
 
-
         while cantidad_paginas >= numero_pagina_actual:
 
             try:
@@ -632,7 +630,7 @@ class sistema_datos:
         self.diccionario_pedidos = self.descargar_datos(pb)
         self.escribir_json_lista_diccionarios(self.diccionario_pedidos)
         self.escribir_archivos_csv(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
-        self.copiar_csv_a_ultimo()
+        # self.copiar_csv_a_ultimo()
         self.escribir_excel()
         self.asignar_texto_pedidos_fallidos(label)
 
