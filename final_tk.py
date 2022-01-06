@@ -1,47 +1,25 @@
-from bs4 import BeautifulSoup
-import math
-import csv
-import requests
-import re
-import json
-import unicodedata
-import time
-from datetime import datetime, date
-import openpyxl
-import os
-from os import listdir
-from os.path import isfile, join
-import shutil
-import tkinter as tk
-from tkinter import *
-from tkinter.ttk import *
-from tkinter import font as tkFont
-from os import listdir
-from os.path import isfile, join
-from functools import cmp_to_key
-
-
-# Funcion para limpiar texto "".join([x for x in "texto" if x==" " or x.isalpha()])
-# Ordenar las listas.csv en carpetas
-# Crear alguna forma de seguir llenando una en base a nuevos pedidos que lleguen
-# En base al orden de las listas en carpetas, generar el excel
+from modulos import *
+from imagenes_ascii import *
 
 class sistema_datos:
+
     def __init__(self):
         self.diccionario_pedidos = {}
         self.diccionario_pedidos_json = {}
         self.ids_nombres_pedido_lista = []
         self.ids_nombres_pedido_parsed = []
+        self.direccion_csv_pedidos = ""
+        self.direccion_csv_paneles = ""
+        self.direccion_csv_requerimientos = ""
         self.diccionario_pedidos = {
             "exitosos":[],
             "fallidos":[]
         }
 
     def comparador_fechas(self, fecha_diccionario_1, fecha_diccionario_2):
-        fecha_1 = fecha_diccionario_1["fecha"]
-        fecha_2 = fecha_diccionario_2["fecha"]
-        dia_1,mes_1 = list(map(int,fecha_1.split("/")))
-        dia_2,mes_2 = list(map(int,fecha_2.split("/")))
+
+        dia_1,mes_1 = list(map(int,fecha_diccionario_1["fecha"].split("/")))
+        dia_2,mes_2 = list(map(int,fecha_diccionario_2["fecha"].split("/")))
         if mes_1 < mes_2:
             return 1
         elif mes_1 == mes_2:
@@ -56,7 +34,7 @@ class sistema_datos:
         else:
             return 0
 
-    def obtener_datos_productos(self, nombre_json):
+    def obtener_json_desde_archivo(self, nombre_json):
         try:
             with open(nombre_json, "r", encoding="utf-8") as archivo:
                 return json.load(archivo)
@@ -64,16 +42,14 @@ class sistema_datos:
         except FileNotFoundError:
             raise FileNotFoundError
 
-    def sacar_tildes(self, s):
-        return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+    def sacar_tildes(self, texto):
+        return ''.join(x for x in unicodedata.normalize('NFD', texto) if unicodedata.category(x) != 'Mn')
 
     def limpiar_texto(self, texto):
         return self.sacar_tildes("".join([x for x in texto if x==" " or x in "0123456789" or x.isalpha()]))
     
     def dejar_solo_numeros(self, texto):
         return "".join([x for x in texto if x in "0123456789"])
-
-    
 
     def decidir_texto_a_escribir(self, codigo_salida, dato):
         texto_a_escribir = ""
@@ -113,9 +89,9 @@ class sistema_datos:
             "productos":[]
         }
 
-    # Si el envio tiene mas de 5 elementos entonces no lo voy a cargar
-    # En el metodo escribir_csv_lista_pedidos el nombre lo tendria que sacar desde facturacion, no desde envio
-    # En todas las asignaciones de facturacion y envio tengo que limpiar la string
+        # Si el envio tiene mas de 5 elementos entonces no lo voy a cargar
+        # En el metodo escribir_csv_lista_pedidos el nombre lo tendria que sacar desde facturacion, no desde envio
+        # En todas las asignaciones de facturacion y envio tengo que limpiar la string
         facturacion = datos_usuario[0]
         email = datos_usuario[1][-1]
         telefono = datos_usuario[2][-1]
@@ -160,8 +136,8 @@ class sistema_datos:
 
         return [codigo_salida,datos_usuario_dict]
 
-    # En vez de 2 listas, un diccionario con 2 claves "exitosos", "fallidos", dependiendo del codigo_salida que esta en [0]
-    # guardo el diccionario de [1] en el diccionario de dos claves
+        # En vez de 2 listas, un diccionario con 2 claves "exitosos", "fallidos", dependiendo del codigo_salida que esta en [0]
+        # guardo el diccionario de [1] en el diccionario de dos claves
 
     def sumar_requerimientos(self, lista_requerimientos, diccionario_plantilla):
         diccionario_suma_requerimientos = diccionario_plantilla
@@ -173,14 +149,47 @@ class sistema_datos:
 
         return diccionario_suma_requerimientos
 
-    def escribir_csv_requerimientos_paneles(self, diccionario_pedidos, datos_productos):
-        csv_columns = ["Cantidades", "Full Specturm", "Mixto", "Calido"]
-        fecha = f'{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}'
-        fecha_actual = date.today().strftime("%d-%m-%y")
-        direccion_desde_directorio_local = os.path.join("archivos/csv/historial", fecha_actual)
-        csv_nombre_paneles = os.path.join(direccion_desde_directorio_local, f'lista_paneles_{fecha}.csv')
-        csv_nombre_requerimientos = os.path.join(direccion_desde_directorio_local, f'lista_requerimientos_{fecha}.csv')
+    def escribir_archivos_csv(self, diccionario_pedidos, datos_productos):
 
+        encabezado_columnas_pedidos = ["Id_Pedido", "Fecha", "Nombre", "Datos_pedido"]
+        encabezado_columnas_paneles = ["Cantidades", "Full Specturm", "Mixto", "Calido"]
+
+        fecha_actual = date.today().strftime("%d-%m-%y")
+        direccion_desde_directorio_local = os.path.join(r"archivos\csv\historial", fecha_actual)
+        direccion_a_comprobar = os.path.join(os.getcwd(),direccion_desde_directorio_local)
+        fecha = f'{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}'
+
+        self.direccion_csv_paneles_ultimo = os.path.join(r"archivos\csv\ultimo", f'lista_paneles_{fecha}.csv')
+        self.direccion_csv_requerimientos_ultimo = os.path.join(r"archivos\csv\ultimo", f'lista_requerimientos_{fecha}.csv')
+        self.direccion_csv_pedidos_ultimo = os.path.join(r"archivos\csv\ultimo", f'lista_pedidos_{fecha}.csv')
+
+        self.direccion_csv_paneles = os.path.join(direccion_desde_directorio_local, f'lista_paneles_{fecha}.csv')
+        self.direccion_csv_requerimientos = os.path.join(direccion_desde_directorio_local, f'lista_requerimientos_{fecha}.csv')
+        self.direccion_csv_pedidos = os.path.join(direccion_desde_directorio_local, f'lista_pedidos_{fecha}.csv')
+        
+        if not os.path.exists(direccion_a_comprobar):   
+            os.makedirs(direccion_a_comprobar)
+
+        ## Borro los archivos de la carpeta ultimo
+        folder = r'archivos\csv\ultimo'
+        for filename in os.listdir(folder):
+            file_path = os.path.join(folder, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print('Failed to delete %s. Reason: %s' % (file_path, e))
+
+        tiempo_espera_maximo = 10
+
+        while not any([f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]) and tiempo_espera_maximo > 0:
+            time.sleep(1)
+            print("Esperando")
+            tiempo_espera_maximo -= 1
+
+        #Full-Spectrum, Mixto, Calido
         diccionario_indices_tipos = {
             "f":0,
             "m":1,
@@ -239,51 +248,16 @@ class sistema_datos:
                     diccionario_cantidad_paneles[codigo][0] += int(cantidad) 
 
         diccionario_suma_requerimientos = self.sumar_requerimientos(lista_requerimientos_productos, datos_productos["plantilla"])
-        
-        try:
-            with open(csv_nombre_paneles, 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
-                writer.writeheader()
-
-                for clave in claves:
-                    diccionario_a_escribir = {
-                        "Cantidades":clave,
-                        "Full Specturm":diccionario_cantidad_paneles[clave][0],
-                        "Mixto":diccionario_cantidad_paneles[clave][1],
-                        "Calido":diccionario_cantidad_paneles[clave][2]
-                    }
-                    writer.writerow(diccionario_a_escribir)
-        except IOError:
-            print("I/O error")
 
         try:
-            with open(csv_nombre_requerimientos, 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=claves_importantes)
-                writer.writeheader()
-                writer.writerow({clave:diccionario_suma_requerimientos[clave] for clave in claves_importantes})
-        except IOError:
-            print("I/O error")
-        
-        return [csv_nombre_paneles,csv_nombre_requerimientos]
-                
-    def escribir_csv_lista_pedidos(self, diccionario_pedidos):
-        csv_columns = ["Id_Pedido", "Fecha", "Nombre", "Datos_pedido"]
-        fecha_actual = date.today().strftime("%d-%m-%y")
-        direccion_desde_directorio_local = os.path.join("archivos/csv/historial", fecha_actual)
-        direccion_a_comprobar = os.path.join(os.getcwd(),direccion_desde_directorio_local)
-        if not os.path.exists(direccion_a_comprobar):   
-            os.makedirs(direccion_a_comprobar)
-
-        direccion_csv = os.path.join(direccion_desde_directorio_local, f'lista_pedidos_{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}.csv')
-        try:
-            with open(direccion_csv, 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
-                writer.writeheader()
+            with open(self.direccion_csv_pedidos, 'w', newline='') as archivo_historial, open(self.direccion_csv_pedidos_ultimo, 'w', newline='') as archivo_ultimo:
+                escritor_csv_historial = csv.DictWriter(archivo_historial, fieldnames=encabezado_columnas_pedidos)
+                escritor_csv_ultimo = csv.DictWriter(archivo_ultimo, fieldnames=encabezado_columnas_pedidos)
+                escritor_csv_historial.writeheader()
+                escritor_csv_ultimo.writeheader()
 
                 fecha_anterior = ""
                 fecha_a_escribir = ""
-
-                #La lista esta parece que viene ordenada por id, necesito que este por fecha para que en el excel salga bien
 
                 lista_pedidos_completa = [elemento for sub_lista in diccionario_pedidos.values() for elemento in sub_lista]
                 
@@ -308,127 +282,121 @@ class sistema_datos:
 
                     self.ids_nombres_pedido_lista.append([diccionario["id_pedido"],diccionario["facturacion"]["nombre"]])
 
-                    writer.writerow(diccionario_a_escribir)
+                    escritor_csv_historial.writerow(diccionario_a_escribir)
+                    escritor_csv_ultimo.writerow(diccionario_a_escribir)
 
             self.ids_nombres_pedido_parsed = list(map(" ".join,self.ids_nombres_pedido_lista))
 
-            return direccion_csv
+        except IOError:
+            print("I/O error")
+
+
+        try:
+            with open(self.direccion_csv_paneles, 'w', newline='') as archivo_historial, open(self.direccion_csv_paneles_ultimo, 'w', newline='') as archivo_ultimo:
+                escritor_csv_historial = csv.DictWriter(archivo_historial, fieldnames=encabezado_columnas_paneles)
+                escritor_csv_ultimo = csv.DictWriter(archivo_ultimo, fieldnames=encabezado_columnas_paneles)
+                escritor_csv_historial.writeheader()
+                escritor_csv_ultimo.writeheader()
+
+                for clave in claves:
+                    diccionario_a_escribir = {
+                        "Cantidades":clave,
+                        "Full Specturm":diccionario_cantidad_paneles[clave][0],
+                        "Mixto":diccionario_cantidad_paneles[clave][1],
+                        "Calido":diccionario_cantidad_paneles[clave][2]
+                    }
+                    escritor_csv_historial.writerow(diccionario_a_escribir)
+                    escritor_csv_ultimo.writerow(diccionario_a_escribir)
+        except IOError:
+            print("I/O error")
+
+        try:
+            with open(self.direccion_csv_requerimientos, 'w', newline='') as archivo_historial, open(self.direccion_csv_requerimientos_ultimo, 'w', newline='') as archivo_ultimo:
+                escritor_csv_historial = csv.DictWriter(archivo_historial, fieldnames=claves_importantes)
+                escritor_csv_ultimo = csv.DictWriter(archivo_ultimo, fieldnames=claves_importantes)
+                escritor_csv_historial.writeheader()
+                escritor_csv_ultimo.writeheader()
+
+                escritor_csv_historial.writerow({clave:diccionario_suma_requerimientos[clave] for clave in claves_importantes})
+                escritor_csv_ultimo.writerow({clave:diccionario_suma_requerimientos[clave] for clave in claves_importantes})
         except IOError:
             print("I/O error")
 
     def escribir_excel(self):
+        
+        tiempo_espera_maximo = 10
 
-        time.sleep(2)    
+        while len([f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]) != 3 and tiempo_espera_maximo > 0:
+            time.sleep(1)
+            print("Esperando")
+            tiempo_espera_maximo -= 1
 
-        archivos = [f for f in listdir(r"archivos/csv/ultimo") if isfile(join(r"archivos/csv/ultimo", f))]
-        diccionario_nombre_archivos = {archivo.split("_")[1]:os.path.join(r"archivos/csv/ultimo",archivo) for archivo in archivos}
+        tk.Frame().destroy()
 
-        arial36b = tkFont.Font(family='Calibri', size=11, weight='normal')
-
-        wb = openpyxl.Workbook()
-        wb.create_sheet(index=0, title="Lista_pedidos")
-        ws = wb.active
-
+        fuente_calibri_11 = tkFont.Font(family='Calibri', size=11, weight='normal')
+        excel = openpyxl.Workbook()
+        excel.create_sheet(index=0, title="Lista_pedidos")
+        libro_actual = excel.active
         largo_maximo_nombre = []
 
-        with open(diccionario_nombre_archivos["pedidos"],'r',encoding="utf-8") as f:
-            reader = csv.reader(f, delimiter=',')
+        with open(self.direccion_csv_pedidos_ultimo,'r',encoding="utf-8") as f:
+            lector_csv = csv.reader(f, delimiter=',')
 
-            for row in reader:
-                largo_maximo_nombre.append(arial36b.measure(row[2]))
-                ws.append(row)
+            for fila in lector_csv:
+                largo_maximo_nombre.append(fuente_calibri_11.measure(fila[2]))
+                libro_actual.append(fila)
 
         #excel deja 3 pixeles delante de la palabra y 5 detras
         #la funcion para convertir pixeles a la unidad de excel es unidad_excel(pixeles) = (pixeles - 5) / 7
-        ws.column_dimensions["c"].width = math.ceil(((max(largo_maximo_nombre)+3+5)-5)/7)+2
+        libro_actual.column_dimensions["c"].width = math.ceil(((max(largo_maximo_nombre)+3+5)-5)/7)+2
 
-        wb.active = 1
-        wb.active.title = "Lista_paneles"
-        ws = wb.active
+        excel.active = 1
+        excel.active.title = "Lista_paneles"
+        libro_actual = excel.active
 
-        with open(diccionario_nombre_archivos["paneles"],'r',encoding="utf-8") as f:
-            reader = csv.reader(f, delimiter=',')
-            for row in reader:
-                ws.append(row)
+        with open(self.direccion_csv_paneles_ultimo,'r',encoding="utf-8") as f:
+            lector_csv = csv.reader(f, delimiter=',')
+            for fila in lector_csv:
+                libro_actual.append(fila)
 
-        wb.create_sheet()
-        wb.active = 2
-        wb.active.title = "Lista_requerimientos"
-        ws = wb.active
+        excel.create_sheet()
+        excel.active = 2
+        excel.active.title = "Lista_requerimientos"
+        libro_actual = excel.active
 
         largo_maximo_requerimiento = []
 
-        with open(diccionario_nombre_archivos["requerimientos"],'r',encoding="utf-8") as f:
-            reader = csv.DictReader(f, delimiter=",")
+        with open(self.direccion_csv_requerimientos_ultimo,'r',encoding="utf-8") as f:
+            lector_csv = csv.DictReader(f, delimiter=",")
 
-            for par_clave_valor in dict(*reader).items():
-                largo_maximo_requerimiento.append(arial36b.measure(par_clave_valor[0]))
-                ws.append(par_clave_valor)
+            for par_clave_valor in dict(*lector_csv).items():
+                largo_maximo_requerimiento.append(fuente_calibri_11.measure(par_clave_valor[0]))
+                libro_actual.append(par_clave_valor)
 
-        ws.column_dimensions["a"].width = math.ceil(((max(largo_maximo_requerimiento)+3+5)-5)/7)+3
+        libro_actual.column_dimensions["a"].width = math.ceil(((max(largo_maximo_requerimiento)+3+5)-5)/7)+3
 
         direccion_desde_directorio_local = r"archivos\excel"
 
         direccion_excel = os.path.join(direccion_desde_directorio_local, f'planilla_completa_{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}.xlsx')
 
-        wb.save(direccion_excel)
+        excel.save(direccion_excel)
 
     def escribir_json_lista_diccionarios(self, diccionario_pedidos):
 
-        with open(r'archivos/json/datos_pedidos.json', 'w', encoding='utf-8') as f:
-
+        with open(r'archivos\json\datos_pedidos.json', 'w', encoding='utf-8') as f:
             lista_pedidos_completa = [elemento for sub_lista in diccionario_pedidos.values() for elemento in sub_lista]
-
             diccionario_a_escribir = {diccionario["id_pedido"]:diccionario for diccionario in lista_pedidos_completa}
-
             self.diccionario_pedidos_json = diccionario_a_escribir
-
             json.dump(diccionario_a_escribir, f, ensure_ascii=False, indent=4)
             
-
-
-
-            # diccionario_a_escribir = {diccionario["id_pedido"]:diccionario for diccionario in lista_diccionarios if diccionario["id_pedido"] not in lista_pedidos_fallidos}
-            # for fallido in lista_pedidos_fallidos:
-            #     diccionario_a_escribir[fallido] = {"error":True}
-            # json.dump(diccionario_a_escribir, f, ensure_ascii=False, indent=4)
-
-    # def escribir_archivo_correo(diccionario_pedidos):
     def escribir_archivo_correo(self, lb):
         
         diccionarios_a_escribir = []
 
-        x = lb.curselection()
-        for y in x:
+        lista_seleccion_list_box = lb.curselection()
+        for seleccion in lista_seleccion_list_box:
             # self.ids_nombres_pedido_lista[y][0] me da el id Ej: "3921"
-            diccionarios_a_escribir.append(self.diccionario_pedidos_json[self.ids_nombres_pedido_lista[y][0]])
-
-        ascii_correo = """               `.----------------------.`         
-           `/yddyyyydNMNysssssssssssssyyhdh+.     
-         `omy:``    ``:ym+`              `-sds.   
-        `hd-            -dh`                .ym-  
-        ym.              -ms                 `hm` 
- `:::::/Nh:::::::::::::`  sN`                 :M: 
- +MNmyoooooooooooooyNMM+  +M.                 .M+ 
- +M/ydo.         .ody+M+  +M.                 .M+ 
- +M. -sdo-     .ods- .M+  +M.                 .M+ 
- +M.   -hNs-`-sNh-   .M+  +M.                 .M+ 
- +M.  .sdsodydosds.  .M+  +M.                 .M+ 
- +M.-ymo.       .omy-.M+  +M.                 .M+ 
- +Mdmo`           `omdM+  +M.                 .M+ 
- :dddddNMdddddddddddddddddMNddddMNdddddddddddddd: 
-      +N+`              `yN:    Ms                
-     -No               `sN:     Ms                
-     .hhyyhhhhhhhhhhhhhhNd      Ms                
-      `.................dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        dd      Ms                
-                        hNssssssNs                
-                        `--------`                 """
+            diccionarios_a_escribir.append(self.diccionario_pedidos_json[self.ids_nombres_pedido_lista[seleccion][0]])
         
         csv_columns = ["tipo_producto",
             "largo",
@@ -477,23 +445,7 @@ class sistema_datos:
             "tierra del fuego":"V",
             "tucuman":"T"}
 
-        csv_file = r"archivos/correo/Correo.csv"
-
-        # diccionarios_a_escribir = []
-
-        # print("Seleccion:", seleccion_list_box)
-        # print("Id:",ids_nombres_pedido_lista)
-        # print(json.dumps(diccionario_datos_exitosos, indent=4))
-
-        # for seleccion in seleccion_list_box:
-
-        #     print(ids_nombres_pedido_lista[seleccion][0])
-        #     print(diccionario_datos_exitosos[ids_nombres_pedido_lista[seleccion][0]])
-            
-        #     if diccionario_datos_exitosos["id_pedido"] == ids_nombres_pedido_lista[seleccion][0]:
-        #         diccionarios_a_escribir.append()
-
-        #     diccionarios_a_escribir.append(diccionario_datos_exitosos[ids_nombres_pedido_lista[seleccion][0]])
+        csv_file = r"archivos\correo\Correo.csv"
 
         try:
             with open(csv_file, 'w', newline='',encoding="utf-8",) as csvfile:
@@ -530,52 +482,7 @@ class sistema_datos:
         except IOError:
             print("I/O error")
 
-    def descargar_datos(self, pb):
-
-        ascii_amnesia = """
-                                                                                                            
-       `dh`      -MMd-      `sMMy  -MMm+    `yMo  /MMMNNNNNNNh  .yMMNNNNNNNN` `yMo       +m:        
-      :mMMd.     -MMMM:    `dMMMh  -MMMMm-  `yMo  /MN+          mMd.          `hMo      sMMM+       
-     :MMosMm-    -MMNMMs  :mMhNMh  -MM::MMs.`yMo  /MMmyyyyyyo   +NMdyyyyyy+-  `hMo    .yMd+mMs      
-    oMMo  +Nm:   -MM--dMmyMN: yMh  -MM` .sMNyNMo  /MMh//////:     ://////sMMo `hMo   `dMm-  dMh.    
-   oMNyhs/ :NM+  -MM` `oMMh.  yMh  -MM`   /mMMMo  /MMo........   ........:mMh``hMo  -mMdyh/``sMd`   
-  hNs.      .dNo .NN`   ./    sNy  -NN`     omNo  /NNNNNNNNNNh  +NNNNNNNNNho  `yNo -NN+       omd-  
-                                                                                                    """
-
-        print(ascii_amnesia)
-
-        payload = {'log': "admin",'pwd':'Poludin2020!'}
-        try:
-            s = requests.session()
-            print("Sesion abierta correctamente")
-        except:
-            print("Problema al abrir la sesion")
-
-        try:
-            s.get('https://amnesiagrow.com.ar/wp-login.php')
-            s.post('https://amnesiagrow.com.ar/wp-login.php', data=payload)
-            print("Login completado correctamente")
-        except:
-            print("Problema al logearse")
-
-        numero_pagina_actual = 1
-        cantidad_paginas = numero_pagina_actual
-
-        lista_diccionarios = []
-        lista_pedidos_fallidos = []
-
-        porcentaje_descarga_total = 0
-        porcentaje_descarga_actual = 0
-
-        diccionario_codigo_salida = {
-            0:"exitosos",
-            1:"fallidos"
-        }
-
-        diccionario_pedidos = {
-            "exitosos":[],
-            "fallidos":[]
-        }
+    def obtener_datos_desde_html(self, html):
 
         meses = {
             "enero":"1",
@@ -592,64 +499,107 @@ class sistema_datos:
             "diciembre":"12",
         }
 
+        numero_pedido = html.find("h2", class_="woocommerce-order-data__heading").text.split("#")[-1].strip("\t")
+                
+        fecha_pedido_raw = html.find("p", class_="woocommerce-order-data__meta order_number").text.split("Pagado el ")[1].split(", ")[0].split(" ")
+        fecha_pedido_parsed = f"{fecha_pedido_raw[0]}/{meses[fecha_pedido_raw[1]]}"
+        
+        datos_usuario_raw = [x.find_all('p') for x in html.find_all(class_="address")]
+        datos_usuario_parsed = [re.split("\n|\r",p.get_text("\n")) for x in datos_usuario_raw for p in x]
+
+        dato_numero_calle_raw = [x.find_all('p') for x in html.find_all(class_="order_data_column")]
+        dato_numero_calle_parsed = [x[-1].text.split(": ")[1] for x in dato_numero_calle_raw if "Numero de calle" in str(x)]
+
+        datos_pedido_nombre = [x.text for x in html.find_all(class_="wc-order-item-name")]
+        
+        fila_tabla_datos_productos = html.find_all("tbody", id="order_line_items")
+        datos_pedido_cantidad_raw = [x.find("div",class_="view") for x in fila_tabla_datos_productos[0].find_all("td", class_="quantity")]
+        datos_pedido_cantidad_parsed = [x.text.strip().split(" ")[-1] for x in datos_pedido_cantidad_raw]
+
+        return numero_pedido, datos_usuario_parsed, datos_pedido_nombre, datos_pedido_cantidad_parsed, fecha_pedido_parsed, dato_numero_calle_parsed
+
+    def descargar_datos(self, pb):
+
+        print(ascii_amnesia)
+        
+        credenciales = self.obtener_json_desde_archivo(r"archivos\datos\credenciales.json")
+        urls = self.obtener_json_desde_archivo(r"archivos\datos\urls.json")
+
+        payload = {'log': credenciales["usuario"],'pwd':credenciales["contrasenia"]}
+
+        try:
+            sesion = requests.session()
+            print("Sesion abierta correctamente")
+        except:
+            print("Problema al abrir la sesion")
+
+        try:
+            sesion.get(urls["url_login"])
+            sesion.post(urls["url_login"], data=payload)
+            print("Login completado correctamente")
+        except:
+            print("Problema al logearse")
+
+        numero_pagina_actual = 1
+        cantidad_paginas = numero_pagina_actual
+
+        porcentaje_descarga_total = 0
+        porcentaje_descarga_actual = 0
+
+        diccionario_codigo_salida = {
+            0:"exitosos",
+            1:"fallidos"
+        }
+
+        diccionario_pedidos = {
+            "exitosos":[],
+            "fallidos":[]
+        }
+
         while cantidad_paginas >= numero_pagina_actual:
 
             try:
-                pagina_pedidos_web = s.get('https://amnesiagrow.com.ar/wp-admin/edit.php?post_status=wc-processing&post_type=shop_order&paged='+str(numero_pagina_actual))
+                pagina_pedidos_web = sesion.get(urls["url_pagina_pedidos"]+str(numero_pagina_actual))
                 print("Pagina obtenida correctamente")        
             except: 
                 print("Problema al obtener la pagina") 
+
             numero_pagina_actual += 1
 
-            soup = BeautifulSoup(pagina_pedidos_web.content, features="html.parser")
+            html_pagina_pedidos_parseado = BeautifulSoup(pagina_pedidos_web.content, features="html.parser")
 
-            cantidad_pedidos = int(soup.find(class_="displaying-num").text.split(" ")[0].strip())
+            cantidad_pedidos = int(html_pagina_pedidos_parseado.find(class_="displaying-num").text.split(" ")[0].strip())
             porcentaje_descarga_total = cantidad_pedidos
             cantidad_paginas = math.ceil(cantidad_pedidos/20)
-            lista_pedidos = [x["href"] for x in soup.find_all(class_="order-view")]
+            lista_pedidos = [x["href"] for x in html_pagina_pedidos_parseado.find_all(class_="order-view")]
+            print(f"Pedidos totales: {cantidad_pedidos}")
 
             for i in range(len(lista_pedidos)):
-
-                pedido_web = s.get(lista_pedidos[i])
-
-                soup2 = BeautifulSoup(pedido_web.content, features="html.parser")
-
-                numero_pedido = soup2.find("h2", class_="woocommerce-order-data__heading").text.split("#")[-1].strip("\t")
-
-                fecha_pedido_raw = soup2.find("p", class_="woocommerce-order-data__meta order_number").text.split("Pagado el ")[1].split(", ")[0].split(" ")
-                fecha_pedido_parsed = f"{fecha_pedido_raw[0]}/{meses[fecha_pedido_raw[1]]}"
                 
-                datos_usuario_raw = [x.find_all('p') for x in soup2.find_all(class_="address")]
+                pedido_web = sesion.get(lista_pedidos[i])
+                html_pedido_individual_parseado = BeautifulSoup(pedido_web.content, features="html.parser")
 
-                dato_numero_calle_raw = [x.find_all('p') for x in soup2.find_all(class_="order_data_column")]
-
-                dato_numero_calle_parsed = [x[-1].text.split(": ")[1] for x in dato_numero_calle_raw if "Numero de calle" in str(x)]
-
-                datos_usuario_parsed = [re.split("\n|\r",p.get_text("\n")) for x in datos_usuario_raw for p in x]
-
-                datos_pedido_nombre = [x.text for x in soup2.find_all(class_="wc-order-item-name")]
-                fila_tabla_datos_productos = soup2.find_all("tbody", id="order_line_items")
-                
-                datos_pedido_cantidad_raw = [x.find("div",class_="view") for x in fila_tabla_datos_productos[0].find_all("td", class_="quantity")]
-
-                # datos_pedido_cantidad_raw = [x.find("div",class_="view") for x in soup2.find_all("td", class_="quantity")][:-1]
-                datos_pedido_cantidad_parsed = [x.text.strip().split(" ")[-1] for x in datos_pedido_cantidad_raw]
+                numero_pedido, datos_usuario, datos_pedido_nombre, datos_pedido_cantidad, fecha_pedido, dato_numero_calle = self.obtener_datos_desde_html(html_pedido_individual_parseado)
          
-                codigo_salida, diccionario_usuario = self.obtener_diccionario_datos(numero_pedido, datos_usuario_parsed, datos_pedido_nombre, datos_pedido_cantidad_parsed, fecha_pedido_parsed, dato_numero_calle_parsed)
+                codigo_salida, diccionario_usuario = self.obtener_diccionario_datos(numero_pedido, 
+                                                                                    datos_usuario, 
+                                                                                    datos_pedido_nombre, 
+                                                                                    datos_pedido_cantidad, 
+                                                                                    fecha_pedido, 
+                                                                                    dato_numero_calle)
                 
                 diccionario_pedidos[diccionario_codigo_salida[codigo_salida]].append(diccionario_usuario)
 
                 porcentaje_descarga_actual += 1
-                print(f"Porcentaje descargado: {porcentaje_descarga_actual*100//porcentaje_descarga_total}")
+
                 self.mover_barra_progreso(porcentaje_descarga_actual*100//porcentaje_descarga_total, pb)
+                print(f"Pedidos restantes: {cantidad_pedidos - porcentaje_descarga_actual}")
 
         return diccionario_pedidos
 
-    def copiar_csv_a_ultimo(self, lista_nombres):
-        # fecha_actual = date.today().strftime("%d-%m-%y")
-        # direccion_desde_directorio_local = os.path.join("archivos\csv\historial", fecha_actual)
-        # direccion_a_comprobar = os.path.join(os.getcwd(),direccion_desde_directorio_local)
-        # archivos = [f for f in listdir(direccion_a_comprobar) if isfile(join(direccion_a_comprobar, f))]
+    def copiar_csv_a_ultimo(self):
+
+        tiempo_espera_maximo = 10
 
         folder = r'archivos\csv\ultimo'
         for filename in os.listdir(folder):
@@ -662,23 +612,27 @@ class sistema_datos:
             except Exception as e:
                 print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-        for archivo in lista_nombres:
-            shutil.copyfile(archivo, os.path.join('archivos/csv/ultimo',archivo.split("\\")[-1]))
+        print([self.direccion_csv_pedidos, self.direccion_csv_paneles, self.direccion_csv_requerimientos])
+
+        for archivo in [self.direccion_csv_pedidos, self.direccion_csv_paneles, self.direccion_csv_requerimientos]:
+            shutil.copyfile(archivo, os.path.join(r'archivos\csv\ultimo',archivo.split("\\")[-1]))
+        
+        while not any([f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]) and tiempo_espera_maximo > 0:
+            time.sleep(1)
+            tiempo_espera_maximo -= 1
+
+    def asignar_texto_pedidos_fallidos(self, label):
+        texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join([pedido['id_pedido'] for pedido in self.diccionario_pedidos['fallidos']])}"
+        label["text"] = texto_pedidos_fallidos
 
     def iniciar_descarga_datos(self, pb, label):
         
         self.diccionario_pedidos = self.descargar_datos(pb)
         self.escribir_json_lista_diccionarios(self.diccionario_pedidos)
-        nombre_archivo_pedidos = self.escribir_csv_lista_pedidos(self.diccionario_pedidos)
-        nombre_archivos_paneles_requerimientos = self.escribir_csv_requerimientos_paneles(self.diccionario_pedidos,self.obtener_datos_productos(r"archivos/json/cantidades.json"))
-        #["nombre_paneles","nombre_requerimientos"].append("nombre_pedidos") HORRIBLE CAMBIAR
-        nombre_archivos_paneles_requerimientos.append(nombre_archivo_pedidos)
-        self.copiar_csv_a_ultimo(nombre_archivos_paneles_requerimientos)
-        time.sleep(2)
-        tk.Frame().destroy()
+        self.escribir_archivos_csv(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
+        # self.copiar_csv_a_ultimo()
         self.escribir_excel()
-        texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join([pedido['id_pedido'] for pedido in self.diccionario_pedidos['fallidos']])}"
-        label["text"] = texto_pedidos_fallidos
+        self.asignar_texto_pedidos_fallidos(label)
 
     def escribir_archivo_correo_tk(self, diccionario_datos_exitosos, ids_nombres_pedido_lista, list_box):
         pass
@@ -737,7 +691,6 @@ class sistema_datos:
 sistema = sistema_datos()
 sistema.crear_ventana_principal_tk()
 
-# Dejar solo los numeros en el cp
 
 # Crear una ventana de tk con 2 botones y una barra de carga en una funcion
 # Boton 1: Descargar datos
@@ -782,7 +735,7 @@ sistema.crear_ventana_principal_tk()
 #   
 #   Paso 3:
 #   nombre_archivo_pedidos = self.escribir_csv_lista_pedidos(diccionario_pedidos_global)
-#   nombre_archivos_paneles_requerimientos = self.escribir_csv_requerimientos_paneles(diccionario_pedidos_global,self.obtener_datos_productos(r"archivos/json/cantidades.json"))
+#   nombre_archivos_paneles_requerimientos = self.escribir_csv_requerimientos_paneles(diccionario_pedidos_global,self.obtener_datos_productos(r"archivos\json\cantidades.json"))
 #   
 #   Escribo los 3 archivos .csv que necesito para conformar un excel.
 #   El primero es "lista_pedidos", las columnas son "Id_Pedido, Fecha, Nombre, Datos_pedido"
