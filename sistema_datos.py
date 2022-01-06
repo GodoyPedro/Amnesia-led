@@ -184,7 +184,7 @@ class sistema_datos:
 
         tiempo_espera_maximo = 10
 
-        while not any([f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]) and tiempo_espera_maximo > 0:
+        while any([f for f in listdir(r"archivos\csv\ultimo") if isfile(join(r"archivos\csv\ultimo", f))]) and tiempo_espera_maximo > 0:
             time.sleep(1)
             print("Esperando")
             tiempo_espera_maximo -= 1
