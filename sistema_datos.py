@@ -11,6 +11,7 @@ class sistema_datos:
         self.direccion_csv_pedidos = ""
         self.direccion_csv_paneles = ""
         self.direccion_csv_requerimientos = ""
+        self.direccion_csv_correo = ""
         self.diccionario_pedidos = {
             "exitosos":[],
             "fallidos":[]
@@ -389,11 +390,11 @@ class sistema_datos:
             self.diccionario_pedidos_json = diccionario_a_escribir
             json.dump(diccionario_a_escribir, f, ensure_ascii=False, indent=4)
             
-    def escribir_archivo_correo(self, lb):
+    def escribir_archivo_correo(self, lista_elementos_seleccionables):
         
         diccionarios_a_escribir = []
 
-        lista_seleccion_list_box = lb.curselection()
+        lista_seleccion_list_box = lista_elementos_seleccionables.curselection()
         for seleccion in lista_seleccion_list_box:
             # self.ids_nombres_pedido_lista[y][0] me da el id Ej: "3921"
             diccionarios_a_escribir.append(self.diccionario_pedidos_json[self.ids_nombres_pedido_lista[seleccion][0]])
@@ -445,10 +446,11 @@ class sistema_datos:
             "tierra del fuego":"V",
             "tucuman":"T"}
 
-        csv_file = r"archivos\correo\Correo.csv"
+        fecha = f'{date.today().strftime("%d-%m")}_{datetime.now().strftime("%H.%M.%S")}'
+        self.direccion_csv_correo = os.path.join(r"archivos\correo", f'correo_{fecha}.csv')
 
         try:
-            with open(csv_file, 'w', newline='',encoding="utf-8",) as csvfile:
+            with open(self.direccion_csv_correo, 'w', newline='',encoding="utf-8",) as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=csv_columns, delimiter=";")
                 writer.writeheader()
 
@@ -518,7 +520,7 @@ class sistema_datos:
 
         return numero_pedido, datos_usuario_parsed, datos_pedido_nombre, datos_pedido_cantidad_parsed, fecha_pedido_parsed, dato_numero_calle_parsed
 
-    def descargar_datos(self, pb):
+    def descargar_datos(self, barra_progreso):
 
         print(ascii_amnesia)
         
@@ -592,7 +594,7 @@ class sistema_datos:
 
                 porcentaje_descarga_actual += 1
 
-                self.mover_barra_progreso(porcentaje_descarga_actual*100//porcentaje_descarga_total, pb)
+                self.mover_barra_progreso(porcentaje_descarga_actual*100//porcentaje_descarga_total, barra_progreso)
                 print(f"Pedidos restantes: {cantidad_pedidos - porcentaje_descarga_actual}")
 
         return diccionario_pedidos
@@ -621,27 +623,26 @@ class sistema_datos:
             time.sleep(1)
             tiempo_espera_maximo -= 1
 
-    def asignar_texto_pedidos_fallidos(self, label):
+    def asignar_texto_pedidos_fallidos(self, etiqueta_pedidos_fallidos):
         texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join([pedido['id_pedido'] for pedido in self.diccionario_pedidos['fallidos']])}"
-        label["text"] = texto_pedidos_fallidos
+        etiqueta_pedidos_fallidos["text"] = texto_pedidos_fallidos
 
-    def iniciar_descarga_datos(self, pb, label):
+    def iniciar_descarga_datos(self, barra_progreso, etiqueta_pedidos_fallidos):
         
-        self.diccionario_pedidos = self.descargar_datos(pb)
+        self.diccionario_pedidos = self.descargar_datos(barra_progreso)
         self.escribir_json_lista_diccionarios(self.diccionario_pedidos)
         self.escribir_archivos_csv(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
-        # self.copiar_csv_a_ultimo()
         self.escribir_excel()
-        self.asignar_texto_pedidos_fallidos(label)
+        self.asignar_texto_pedidos_fallidos(etiqueta_pedidos_fallidos)
 
     def escribir_archivo_correo_tk(self, diccionario_datos_exitosos, ids_nombres_pedido_lista, list_box):
         pass
 
-    def mover_barra_progreso(self, valor, pb):
+    def mover_barra_progreso(self, valor, barra_progreso):
         if valor == 100:
-            pb["value"] = 99.9
+            barra_progreso["value"] = 99.9
         else:
-            pb["value"] = valor 
+            barra_progreso["value"] = valor 
 
     def al_cerrar_ventana(self, ventana, barra_progreso):
         ventana.destroy()
@@ -652,41 +653,41 @@ class sistema_datos:
         barra_progreso["mode"] = "indeterminate"
         barra_progreso.start(10)
 
-        newWindow = Toplevel(ventana_principal)
-        newWindow.title("Correo")
-        newWindow.geometry("")
-        newWindow.grid()
-        scrollbar = tk.Scrollbar(newWindow, orient=tk.VERTICAL)
-        Lb = Listbox(newWindow, height=24,width=max(map(len,self.ids_nombres_pedido_parsed)), selectmode=tk.EXTENDED)
-        boton = Button(newWindow, text="Escribir archivo correo",command=lambda: self.escribir_archivo_correo(Lb))
-        Lb.insert(tk.END, *self.ids_nombres_pedido_parsed)
-        scrollbar.config(command=Lb.yview)
+        nueva_ventana = Toplevel(ventana_principal)
+        nueva_ventana.title("Correo")
+        nueva_ventana.geometry("")
+        nueva_ventana.grid()
+        barra_desplazamiento = tk.Scrollbar(nueva_ventana, orient=tk.VERTICAL)
+        lista_elementos_seleccionables = Listbox(nueva_ventana, height=24,width=max(map(len, self.ids_nombres_pedido_parsed)), selectmode=tk.EXTENDED)
+        boton_escribir_correo = Button(nueva_ventana, text="Escribir archivo correo", command=lambda: self.escribir_archivo_correo(lista_elementos_seleccionables))
+        lista_elementos_seleccionables.insert(tk.END, *self.ids_nombres_pedido_parsed)
+        barra_desplazamiento.config(command=lista_elementos_seleccionables.yview)
 
-        Lb.grid(pady=5,padx=5, row=0, column=0, sticky="WE")
-        scrollbar.grid(sticky="NS",row=0, column=1)
-        boton.grid(pady=5,padx=5,row=1, column=0, columnspan=2,sticky="NSWE")
+        lista_elementos_seleccionables.grid(pady=5, padx=5, row=0, column=0, sticky="WE")
+        barra_desplazamiento.grid(sticky="NS", row=0, column=1)
+        boton_escribir_correo.grid(pady=5,padx=5,row=1, column=0, columnspan=2, sticky="NSWE")
         
-        newWindow.protocol("WM_DELETE_WINDOW", lambda: self.al_cerrar_ventana(newWindow, barra_progreso))
+        nueva_ventana.protocol("WM_DELETE_WINDOW", lambda: self.al_cerrar_ventana(nueva_ventana, barra_progreso))
 
     def crear_ventana_principal_tk(self):
-        root = tk.Tk()
-        root.geometry('310x135')
-        root.title('Aplicacion pedidos - AML')
-        root.iconbitmap("amnesia_icono.ico")
-        root.grid()
+        ventana = tk.Tk()
+        ventana.geometry('310x135')
+        ventana.title('Aplicacion pedidos - AML')
+        ventana.iconbitmap("amnesia_icono.ico")
+        ventana.grid()
 
         texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join(self.diccionario_pedidos['fallidos'].keys())}"
-        label = Label(root,text = texto_pedidos_fallidos)
-        pb = Progressbar(root, orient='horizontal', mode='determinate', length=300)
-        boton_datos = tk.Button(text="Descargar datos",command=lambda: self.iniciar_descarga_datos(pb,label))
-        boton_correo = tk.Button(text="Escribir archivo correo",command=lambda: self.crear_ventana_correo_tk(root,pb))
-        boton_datos.grid(pady=5,padx=5,row=0, column=1, columnspan=1,sticky="NSWE")
-        boton_correo.grid(pady=5,padx=5,row=1, column=1, columnspan=1,sticky="NSWE")
-        label.grid(pady=5,padx=5,row=2, column=1, columnspan=1,sticky="N")
-        pb.grid(pady=5,padx=5,row=3, column=0, columnspan=3,sticky="NSWE")
+        etiqueta_pedidos_fallidos = Label(ventana, text = texto_pedidos_fallidos)
+        barra_progreso = Progressbar(ventana, orient='horizontal', mode='determinate', length=300)
+        boton_datos = tk.Button(text="Descargar datos", command=lambda: self.iniciar_descarga_datos(barra_progreso,etiqueta_pedidos_fallidos))
+        boton_correo = tk.Button(text="Escribir archivo correo", command=lambda: self.crear_ventana_correo_tk(ventana,barra_progreso))
+        boton_datos.grid(pady=5, padx=5, row=0, column=1, columnspan=1, sticky="NSWE")
+        boton_correo.grid(pady=5, padx=5, row=1, column=1, columnspan=1, sticky="NSWE")
+        etiqueta_pedidos_fallidos.grid(pady=5, padx=5, row=2, column=1, columnspan=1,sticky="N")
+        barra_progreso.grid(pady=5, padx=5, row=3, column=0, columnspan=3, sticky="NSWE")
         
 
-        root.mainloop()
+        ventana.mainloop()
 
 sistema = sistema_datos()
 sistema.crear_ventana_principal_tk()
