@@ -679,7 +679,7 @@ class sistema_datos:
         texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join(self.diccionario_pedidos['fallidos'].keys())}"
         etiqueta_pedidos_fallidos = Label(ventana, text = texto_pedidos_fallidos)
         barra_progreso = Progressbar(ventana, orient='horizontal', mode='determinate', length=300)
-        boton_datos = tk.Button(text="Descargar datos", command=lambda: self.iniciar_descarga_datos(barra_progreso,etiqueta_pedidos_fallidos))
+        boton_datos = tk.Button(text="Descargar datos", command=threading.Thread(target=lambda: self.iniciar_descarga_datos(barra_progreso,etiqueta_pedidos_fallidos)).start())
         boton_correo = tk.Button(text="Escribir archivo correo", command=lambda: self.crear_ventana_correo_tk(ventana,barra_progreso))
         boton_datos.grid(pady=5, padx=5, row=0, column=1, columnspan=1, sticky="NSWE")
         boton_correo.grid(pady=5, padx=5, row=1, column=1, columnspan=1, sticky="NSWE")
