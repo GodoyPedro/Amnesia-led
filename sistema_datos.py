@@ -257,34 +257,36 @@ class sistema_datos:
                 escritor_csv_historial.writeheader()
                 escritor_csv_ultimo.writeheader()
 
-                fecha_anterior = ""
-                fecha_a_escribir = ""
+                # fecha_anterior = ""
+                # fecha_a_escribir = ""
 
                 lista_pedidos_completa = [elemento for sub_lista in diccionario_pedidos.values() for elemento in sub_lista]
-                
-                lista_pedidos_completa.sort(key=cmp_to_key(self.comparador_fechas),reverse=True)
+                lista_pedidos_completa.sort(key = lambda diccionario: diccionario['id_pedido'])
+                # lista_pedidos_completa.sort(key=cmp_to_key(self.comparador_fechas),reverse=True)
 
                 for diccionario in lista_pedidos_completa:
                     
-                    fecha_actual = diccionario["fecha"]
-                    if fecha_anterior != fecha_actual:
-                        fecha_a_escribir = fecha_actual
-                    elif fecha_anterior == fecha_actual:
-                        fecha_a_escribir = " "
+                    # fecha_actual = diccionario["fecha"]
+                    # if fecha_anterior != fecha_actual:
+                    #     fecha_a_escribir = fecha_actual
+                    # elif fecha_anterior == fecha_actual:
+                    #     fecha_a_escribir = " "
 
-                    fecha_anterior = fecha_actual
+                    # fecha_anterior = fecha_actual
 
                     diccionario_a_escribir = {
                         "Id_Pedido": diccionario["id_pedido"],
-                        "Fecha": fecha_a_escribir,
+                        # "Fecha": fecha_a_escribir,
+                        "Fecha": diccionario["fecha"],
                         "Nombre": diccionario["facturacion"]["nombre"],
                         "Datos_pedido": " --- ".join([" ".join(x) for x in diccionario["productos"]])
                     }
 
-                    self.ids_nombres_pedido_lista.append([diccionario["id_pedido"],diccionario["facturacion"]["nombre"]])
-
                     escritor_csv_historial.writerow(diccionario_a_escribir)
                     escritor_csv_ultimo.writerow(diccionario_a_escribir)
+            
+            for diccionario in diccionario_pedidos["exitosos"]:
+                self.ids_nombres_pedido_lista.append([diccionario["id_pedido"],diccionario["facturacion"]["nombre"]])
 
             self.ids_nombres_pedido_parsed = list(map(" ".join,self.ids_nombres_pedido_lista))
 
@@ -398,6 +400,7 @@ class sistema_datos:
         for seleccion in lista_seleccion_list_box:
             # self.ids_nombres_pedido_lista[y][0] me da el id Ej: "3921"
             diccionarios_a_escribir.append(self.diccionario_pedidos_json[self.ids_nombres_pedido_lista[seleccion][0]])
+            # Se estan agrendando a ventana de correo los pedidos fallidos
         
         csv_columns = ["tipo_producto",
             "largo",
@@ -558,6 +561,8 @@ class sistema_datos:
             "fallidos":[]
         }
 
+        cantidades = self.obtener_json_desde_archivo(r"archivos\json\cantidades.json")
+
         while cantidad_paginas >= numero_pagina_actual:
 
             try:
@@ -597,6 +602,15 @@ class sistema_datos:
                 self.mover_barra_progreso(porcentaje_descarga_actual*100//porcentaje_descarga_total, barra_progreso)
                 print(f"Pedidos restantes: {cantidad_pedidos - porcentaje_descarga_actual}")
 
+                print(diccionario_usuario["id_pedido"])
+                for producto in diccionario_usuario["productos"]:
+                    print(producto[0], producto[0] in cantidades.keys())
+                    if producto[0] not in cantidades.keys():
+                        print("####################################################################################")
+                        print("####################################################################################")
+                        print("####################################################################################")
+                print("\n")
+
         return diccionario_pedidos
 
     def copiar_csv_a_ultimo(self):
@@ -624,16 +638,19 @@ class sistema_datos:
             tiempo_espera_maximo -= 1
 
     def asignar_texto_pedidos_fallidos(self, etiqueta_pedidos_fallidos):
-        texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join([pedido['id_pedido'] for pedido in self.diccionario_pedidos['fallidos']])}"
+        texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join([pedido['id_pedido'] for pedido in self.diccionario_pedidos['fallidos']])}"    
         etiqueta_pedidos_fallidos["text"] = texto_pedidos_fallidos
 
+
     def iniciar_descarga_datos(self, barra_progreso, etiqueta_pedidos_fallidos):
-        
         self.diccionario_pedidos = self.descargar_datos(barra_progreso)
         self.escribir_json_lista_diccionarios(self.diccionario_pedidos)
         self.escribir_archivos_csv(self.diccionario_pedidos,self.obtener_json_desde_archivo(r"archivos\json\cantidades.json"))
         self.escribir_excel()
         self.asignar_texto_pedidos_fallidos(etiqueta_pedidos_fallidos)
+
+    def comenzar(self, barra_progreso, etiqueta_pedidos_fallidos):
+        threading.Thread(target = self.iniciar_descarga_datos(barra_progreso,etiqueta_pedidos_fallidos)).start()
 
     def escribir_archivo_correo_tk(self, diccionario_datos_exitosos, ids_nombres_pedido_lista, list_box):
         pass
@@ -679,7 +696,8 @@ class sistema_datos:
         texto_pedidos_fallidos = "No hay pedidos fallidos" if not bool(self.diccionario_pedidos["fallidos"]) else f"Pedidos fallidos: {', '.join(self.diccionario_pedidos['fallidos'].keys())}"
         etiqueta_pedidos_fallidos = Label(ventana, text = texto_pedidos_fallidos)
         barra_progreso = Progressbar(ventana, orient='horizontal', mode='determinate', length=300)
-        boton_datos = tk.Button(text="Descargar datos", command=threading.Thread(target=lambda: self.iniciar_descarga_datos(barra_progreso,etiqueta_pedidos_fallidos)).start())
+        # boton_datos = tk.Button(text="Descargar datos", command=threading.Thread(target=lambda: self.iniciar_descarga_datos(barra_progreso,etiqueta_pedidos_fallidos)).start())
+        boton_datos = tk.Button(text="Descargar datos", command=lambda: self.iniciar_descarga_datos(barra_progreso,etiqueta_pedidos_fallidos))
         boton_correo = tk.Button(text="Escribir archivo correo", command=lambda: self.crear_ventana_correo_tk(ventana,barra_progreso))
         boton_datos.grid(pady=5, padx=5, row=0, column=1, columnspan=1, sticky="NSWE")
         boton_correo.grid(pady=5, padx=5, row=1, column=1, columnspan=1, sticky="NSWE")
